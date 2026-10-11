@@ -65,7 +65,7 @@ Every handler shows up in the engine's profiler as `GameFixes::<fix>::<function>
 
 ## Building
 
-Requires `S2SDK` (or `HL2SDKCS2`), `MMSOURCE_DEV` and `CSGO_PROTO` in the environment (alliedmodders/s2sdk `cs2` branch, metamod-source, SteamTracking Protobufs `csgo/`).
+Requires `S2SDK` (or `HL2SDKCS2`) and `MMSOURCE_DEV` in the environment (alliedmodders/s2sdk `cs2` branch, metamod-source; the game protobufs are generated from s2sdk's own `.proto` files).
 
 CMake, for local development (CLion):
 
@@ -81,7 +81,7 @@ AMBuild, what CI uses (`docker/` on Linux, MSVC on Windows), same as the other `
 
 ```
 mkdir build && cd build
-python ../configure.py --enable-optimize --sdks cs2 --mms_path=$MMSOURCE_DEV --hl2sdk-root=$HL2SDKCS2 --hl2sdk-manifests=$MMSOURCE_DEV/hl2sdk-manifests
+python ../configure.py --enable-optimize --sdks cs2 --mms_path=$MMSOURCE_DEV --hl2sdk-manifests=$MMSOURCE_DEV/hl2sdk-manifests
 ambuild
 ```
 

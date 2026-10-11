@@ -1,3 +1,6 @@
+# Settings every platform shares -- CMake twin of makefiles/ambuild/shared.ambuild.
+# The per-platform ones are in linux.cmake / windows.cmake.
+
 if (UNIX AND NOT APPLE)
     set(LINUX TRUE)
 endif ()
@@ -55,7 +58,6 @@ include_directories(
     ${SOURCESDK}/public/tier0
     ${SOURCESDK}/public/tier1
     ${SOURCESDK}/public/entity2
-    ${SOURCESDK}/public/game/server
     ${SOURCESDK}/public/schemasystem
     ${METAMOD_DIR}/core
     # KHook: metamod's detour library. Header-only on the plugin side, the
@@ -65,5 +67,3 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/vendor/dynlibutils/include
     ${CMAKE_SOURCE_DIR}/vendor/dynlibutils/include/dynlibutils
 )
-
-include(${CMAKE_CURRENT_LIST_DIR}/metamod/configure_metamod.cmake)
