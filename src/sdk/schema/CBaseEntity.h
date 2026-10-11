@@ -1,6 +1,6 @@
 //====== Copyright © 1996-2005, Valve Corporation, All rights reserved. =======
 //
-// Purpose:
+// Purpose: CBaseEntity
 //
 //=============================================================================
 
@@ -10,26 +10,14 @@
 #pragma once
 #endif
 
-#include "schemasystem_helper.h"
+#include "CBodyComponent.h"
 #include "CCollisionProperty.h"
+#include "schemasystem_helper.h"
 
 #include <const.h>
 #include <entityhandle.h>
 #include <entityinstance.h>
 #include <mathlib/vector.h>
-
-class CGameSceneNode
-{
-public:
-    SCHEMA_FIELD(CGameSceneNode*, CGameSceneNode, m_pParent);
-    SCHEMA_FIELD(Vector, CGameSceneNode, m_vecAbsOrigin);
-};
-
-class CBodyComponent
-{
-public:
-    SCHEMA_FIELD(CGameSceneNode*, CBodyComponent, m_pSceneNode);
-};
 
 class CBaseEntity : public CEntityInstance
 {

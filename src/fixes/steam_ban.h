@@ -34,11 +34,10 @@
 
 #include "fix.h"
 #include "plugin.h"
+#include "sdk/CGcBanInformation.h"
 #include "utils.hpp"
 
-#include "sdk/CGcBanInformation.h"
-
-#include <tier1/utlmap.h>
+#include <tier0/utlmap.h>
 
 #include <unordered_set>
 

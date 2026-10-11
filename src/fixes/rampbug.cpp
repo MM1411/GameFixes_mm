@@ -24,17 +24,17 @@
  */
 
 #include "rampbug.h"
+
+#include "schema/CBasePlayerPawn.h"
+#include "schema/CCSPlayer_MovementServices.h"
+#include "sdk/INavPhysicsInterface.h"
 #include "vprof.hpp"
 
-#include "sdk/CBasePlayerPawn.h"
-#include "sdk/CCSPlayer_MovementServices.h"
-#include "sdk/INavPhysicsInterface.h"
-
-#include "dynlibutils/module.hpp"
-
 #include <const.h>
-#include <eiface.h>
-#include <globalvars.h>
+#include <dynlibutils/module.hpp>
+#include <engine2/gameshareddefs.h>
+#include <engine2/isource2server.h>
+#include <engine2/ivengineserver2.h>
 #include <mathlib/mathlib.h>
 
 #include <cfloat>
@@ -158,7 +158,7 @@ void CRampbugFix::Unload()
     m_pNavPhysicsVTable = nullptr;
 }
 
-void CRampbugFix::TracePlayerBBox(const Vector& start, const Vector& end, const bbox_t& bounds, CTraceFilter* pFilter, trace_t& pm)
+void CRampbugFix::TracePlayerBBox(const Vector& start, const Vector& end, const PlayerBounds_t& bounds, CTraceFilter* pFilter, trace_t& pm)
 {
     // The interface has no state of its own: a pointer to its vtable pointer
     // stands in for the object.
@@ -223,7 +223,7 @@ void CRampbugFix::SetVelocity(PlayerState& state, CBasePlayerPawn* pPawn, const 
         pPawn->m_vecAbsVelocity() = vecVelocity;
 }
 
-void CRampbugFix::GetBounds(CCSPlayer_MovementServices* pServices, bbox_t& bounds)
+void CRampbugFix::GetBounds(CCSPlayer_MovementServices* pServices, PlayerBounds_t& bounds)
 {
     bounds.mins = Vector(-16.0f, -16.0f, 0.0f);
     bounds.maxs = Vector(16.0f, 16.0f, pServices->m_bDucked() ? 54.0f : 72.0f);
@@ -246,7 +246,7 @@ void CRampbugFix::ApplySlopeFix(PlayerState& state, CBasePlayerPawn* pPawn)
     if (!state.bProcessingMovement || !state.pMoveData)
         return;
 
-    bbox_t bounds;
+    PlayerBounds_t bounds;
     GetBounds(static_cast<CCSPlayer_MovementServices*>(pPawn->m_pMovementServices()), bounds);
 
     CTraceFilterPlayerMovementCS filter(pPawn);
@@ -281,7 +281,7 @@ void CRampbugFix::ApplySlopeFix(PlayerState& state, CBasePlayerPawn* pPawn)
     }
 }
 
-bool CRampbugFix::IsValidMovementTrace(trace_t& trace, const bbox_t& bounds, CTraceFilter* pFilter)
+bool CRampbugFix::IsValidMovementTrace(trace_t& trace, const PlayerBounds_t& bounds, CTraceFilter* pFilter)
 {
     if (trace.m_bStartInSolid)
         return false;
@@ -396,7 +396,7 @@ KHook::Return<void> CRampbugFix::CCSPlayer_MovementServices_TryPlayerMove(CCSPla
     unsigned numPlanes = 0;
     trace_t pierce;
 
-    bbox_t bounds;
+    PlayerBounds_t bounds;
     GetBounds(pThis, bounds);
 
     CTraceFilterPlayerMovementCS filter(pPawn);
@@ -621,7 +621,7 @@ KHook::Return<void> CRampbugFix::CCSPlayer_MovementServices_CategorizePosition(C
     if (velocity.z > -64.0f)
         return { KHook::Action::Ignore };
 
-    bbox_t bounds;
+    PlayerBounds_t bounds;
     GetBounds(pThis, bounds);
 
     CTraceFilterPlayerMovementCS filter(pPawn);

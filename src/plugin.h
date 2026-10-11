@@ -25,15 +25,15 @@
 
 #pragma once
 
-#include <ISmmPlugin.h>
-
 #include "utils.hpp"
 
-#include "dynlibutils/virtual.hpp"
-
-#include "eiface.h"
-#include "igameevents.h"
-#include "iserver.h"
+#include <dynlibutils/virtual.hpp>
+#include <engine2/inetworkserverservice.h>
+#include <engine2/isource2server.h>
+#include <engine2/ivengineserver2.h>
+#include <engine2/networkgameserverbase.h>
+#include <igameevents.h>
+#include <ISmmPlugin.h>
 
 #include <memory>
 #include <vector>

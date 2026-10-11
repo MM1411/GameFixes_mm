@@ -23,17 +23,20 @@
  * Project: GameFixes_mm
  */
 
-#include <schemasystem/schemasystem.h>
 #include "schemasystem_helper.h"
+
 #include "utils.hpp"
+
+#include <dynlibutils/module.hpp>
+#include <entity2/entityclass.h>
+#include <entity2/entitysystem.h>
+#include <gameentitysystem.h>
+#include <networksystem/inetworkserializer.h>
+#include <schemasystem/schemasystem.h>
+
 #include <cstring>
 #include <unordered_map>
 #include <utility>
-
-#include <entity2/entitysystem.h>
-#include <entity2/entityclass.h>
-#include <networksystem/inetworkserializer.h>
-#include <dynlibutils/module.hpp>
 
 // The NetworkVar wrapper's NetworkStateChanged starts by checking
 // NetworkStateChangedData::m_nPathIndex against -1: `cmp dword ptr [data+0x38], -1`,

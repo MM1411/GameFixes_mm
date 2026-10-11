@@ -35,16 +35,20 @@
 
 #include "fix.h"
 #include "plugin.h"
-#include "utils.hpp"
-
 #include "sdk/CMoveData.h"
+#include "utils.hpp"
 
 #include <gametrace.h>
 #include <mathlib/vector.h>
 
 class CBasePlayerPawn;
 class CCSPlayer_MovementServices;
-struct bbox_t;
+// The player's bounds; s2sdk dropped the bbox_t eiface.h used to have.
+struct PlayerBounds_t
+{
+    Vector mins;
+    Vector maxs;
+};
 
 class CRampbugFix final : public CFix
 {
@@ -97,15 +101,15 @@ private:
     static void GetVelocity(const PlayerState& state, CBasePlayerPawn* pPawn, Vector& vecOut);
     static void SetOrigin(PlayerState& state, CBasePlayerPawn* pPawn, const Vector& vecOrigin);
     static void SetVelocity(PlayerState& state, CBasePlayerPawn* pPawn, const Vector& vecVelocity);
-    static void GetBounds(CCSPlayer_MovementServices* pServices, bbox_t& bounds);
+    static void GetBounds(CCSPlayer_MovementServices* pServices, PlayerBounds_t& bounds);
 
     void RegisterLanding(PlayerState& state, CBasePlayerPawn* pPawn, const Vector& vecVelocity);
     void ApplySlopeFix(PlayerState& state, CBasePlayerPawn* pPawn);
-    bool IsValidMovementTrace(trace_t& trace, const bbox_t& bounds, CTraceFilter* pFilter);
+    bool IsValidMovementTrace(trace_t& trace, const PlayerBounds_t& bounds, CTraceFilter* pFilter);
 
     // The engine's own TracePlayerBBox is gone; the player box is traced
     // through CNavPhysicsInterface::Nav_TraceShape, as cs2kz does.
-    void TracePlayerBBox(const Vector& start, const Vector& end, const bbox_t& bounds, CTraceFilter* pFilter, trace_t& pm);
+    void TracePlayerBBox(const Vector& start, const Vector& end, const PlayerBounds_t& bounds, CTraceFilter* pFilter, trace_t& pm);
     void* m_pNavPhysicsVTable = nullptr;
 
     PlayerState m_states[64];

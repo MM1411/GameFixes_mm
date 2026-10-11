@@ -1,6 +1,6 @@
-﻿//====== Copyright © 1996-2005, Valve Corporation, All rights reserved. =======
+//====== Copyright © 1996-2005, Valve Corporation, All rights reserved. =======
 //
-// Purpose:
+// Purpose: CCSGameRules
 //
 //=============================================================================
 
@@ -10,7 +10,7 @@
 #pragma once
 #endif
 
-#include "CBaseEntity.h"
+#include "schemasystem_helper.h"
 
 class CCSGameRules
 {
@@ -19,12 +19,6 @@ public:
     SCHEMA_FIELD(int32_t, CCSGameRules, m_iNumSpawnableCT);
     SCHEMA_FIELD(int32_t, CCSGameRules, m_iMaxNumTerrorists);
     SCHEMA_FIELD(int32_t, CCSGameRules, m_iMaxNumCTs);
-};
-
-class CCSGameRulesProxy : public CBaseEntity
-{
-public:
-    SCHEMA_FIELD(CCSGameRules*, CCSGameRulesProxy, m_pGameRules);
 };
 
 #endif // CCSGAMERULES_H

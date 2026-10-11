@@ -24,16 +24,18 @@
  */
 
 #include "server_list_players.h"
+
 #include "scheduler.h"
+#include "schema/CBasePlayerController.h"
 #include "utils.hpp"
 #include "vprof.hpp"
 
-#include "sdk/CBasePlayerController.h"
-
-#include <eiface.h>
+#include <engine2/isource2server.h>
+#include <engine2/ivengineserver2.h>
 #include <entitysystem.h>
+#include <gameentitysystem.h>
 #include <interfaces/interfaces.h>
-#include <tier1/KeyValues.h>
+#include <tier0/keyvalues.h>
 
 CServerListPlayersFix::CServerListPlayersFix() :
     KHOOK_NEW(m_hSteamAPIActivated, &ISource2Server::GameServerSteamAPIActivated, this, nullptr, &CServerListPlayersFix::CSource2Server_GameServerSteamAPIActivated),
@@ -55,7 +57,7 @@ bool CServerListPlayersFix::Load(const FixModules& modules, char* error, size_t 
     m_hSteamAPIDeactivated->Add(g_pSource2Server);
 
     // Loaded after the API already came up (late load): there won't be another activation, so try it right away.
-    m_bSteamAPIReady = m_steamAPI.Init();
+    m_bSteamAPIReady = SteamGameServer() != nullptr;
 
     m_pUpdateTimer = scheduler::AddTimer(m_flUpdateInterval, [this]() { UpdatePlayers(); }, TIMER_FLAG_REPEAT);
 
@@ -76,7 +78,6 @@ void CServerListPlayersFix::Unload()
     scheduler::KillTimer(m_pUpdateTimer);
     m_pUpdateTimer = nullptr;
 
-    m_steamAPI.Clear();
     m_bSteamAPIReady = false;
 }
 
@@ -84,7 +85,7 @@ KHook::Return<void> CServerListPlayersFix::CSource2Server_GameServerSteamAPIActi
 {
     GF_VPROF("GameFixes::server_list_players::SteamAPIActivated");
 
-    m_bSteamAPIReady = m_steamAPI.Init();
+    m_bSteamAPIReady = SteamGameServer() != nullptr;
 
     return { KHook::Action::Ignore };
 }
@@ -93,7 +94,6 @@ KHook::Return<void> CServerListPlayersFix::CSource2Server_GameServerSteamAPIDeac
 {
     GF_VPROF("GameFixes::server_list_players::SteamAPIDeactivated");
 
-    m_steamAPI.Clear();
     m_bSteamAPIReady = false;
 
     return { KHook::Action::Ignore };
@@ -106,7 +106,7 @@ void CServerListPlayersFix::UpdatePlayers()
     if (!m_bSteamAPIReady)
         return;
 
-    ISteamGameServer* pGameServer = m_steamAPI.SteamGameServer();
+    ISteamGameServer* pGameServer = SteamGameServer();
     CGameEntitySystem* pEntitySystem = GameEntitySystem();
     CGlobalVars* pGlobals = g_pEngineServer->GetServerGlobals();
     if (!pGameServer || !pEntitySystem || !pGlobals)

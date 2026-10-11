@@ -1,11 +1,11 @@
 //====== Copyright © 1996-2005, Valve Corporation, All rights reserved. =======
 //
-// Purpose:
+// Purpose: VPhysicsCollisionAttribute_t
 //
 //=============================================================================
 
-#ifndef CCOLLISIONPROPERTY_H
-#define CCOLLISIONPROPERTY_H
+#ifndef VPHYSICSCOLLISIONATTRIBUTE_T_H
+#define VPHYSICSCOLLISIONATTRIBUTE_T_H
 #ifdef _WIN32
 #pragma once
 #endif
@@ -21,11 +21,4 @@ struct VPhysicsCollisionAttribute_t
     SCHEMA_FIELD(uint16, VPhysicsCollisionAttribute_t, m_nHierarchyId);
 };
 
-class CCollisionProperty
-{
-public:
-    SCHEMA_FIELD(VPhysicsCollisionAttribute_t, CCollisionProperty, m_collisionAttribute);
-    SCHEMA_FIELD(uint8, CCollisionProperty, m_CollisionGroup);
-};
-
-#endif // CCOLLISIONPROPERTY_H
+#endif // VPHYSICSCOLLISIONATTRIBUTE_T_H

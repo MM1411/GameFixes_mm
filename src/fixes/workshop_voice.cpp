@@ -28,8 +28,7 @@
 #include "utils.hpp"
 #include "vprof.hpp"
 
-#include "dynlibutils/module.hpp"
-
+#include <dynlibutils/module.hpp>
 #include <networksystem/inetworkserializer.h>
 
 #include <cstdio>
@@ -87,7 +86,7 @@ KHook::Return<bool> CWorkshopVoiceFix::CServerSideClient_SendNetMessage(CServerS
         return { KHook::Action::Ignore, true };
 
     // The reference implementation's "playerid": the client being sent to, not the one talking.
-    const int nRecipient = pThis->GetPlayerSlot().Get();
+    const int nRecipient = pThis->m_nClientSlot.Get();
 
     // Rewritten in place in Pre, so the engine serializes the modified message into this client's channel.
     CSVCMsg_VoiceData* pMsg = const_cast<CSVCMsg_VoiceData*>(static_cast<const CSVCMsg_VoiceData*>(pData->ToPB<CSVCMsg_VoiceData>()));

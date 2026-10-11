@@ -26,11 +26,10 @@
 #include "demo_record.h"
 
 #include "sdk/GameSessionConfiguration.h"
-
 #include "utils.hpp"
 #include "vprof.hpp"
 
-#include "dynlibutils/module.hpp"
+#include <dynlibutils/module.hpp>
 
 #include <cstdio>
 
@@ -84,7 +83,7 @@ KHook::Return<void> CDemoRecordFix::CServerSideClient_Disconnect(CServerSideClie
 {
     GF_VPROF("GameFixes::demo_record::Disconnect");
 
-    if (pThis->IsHLTV() && IsTvEnabled())
+    if (pThis->m_bIsHLTV && IsTvEnabled())
     {
         Log("GOTV is enabled, blocking the GOTV client's disconnect");
         return { KHook::Action::Supersede };

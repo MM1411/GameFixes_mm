@@ -27,7 +27,7 @@
 
 #include "vprof.hpp"
 
-#include "dynlibutils/module.hpp"
+#include <dynlibutils/module.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -87,7 +87,7 @@ void CVoiceFloodFix::OnStartupServer(const GameSessionConfiguration_t& config, c
     m_bLoggedFirstDrop = false;
 }
 
-KHook::Return<bool> CVoiceFloodFix::CServerSideClient_ProcessVoiceData(CServerSideClientBase* pThis, const CCLCMsg_VoiceData_t& msg)
+KHook::Return<bool> CVoiceFloodFix::CServerSideClient_ProcessVoiceData(CServerSideClientBase* pThis, const CNetMessagePB<CCLCMsg_VoiceData>& msg)
 {
     GF_VPROF("GameFixes::voice_flood::ProcessVoiceData");
 
@@ -98,7 +98,7 @@ KHook::Return<bool> CVoiceFloodFix::CServerSideClient_ProcessVoiceData(CServerSi
     if (!m_bLoggedFirstDrop)
     {
         m_bLoggedFirstDrop = true;
-        Log("dropped a voice message from slot %d", pThis->GetPlayerSlot().Get());
+        Log("dropped a voice message from slot %d", pThis->m_nClientSlot.Get());
     }
 
     // Answered true, so the engine doesn't count the client as broken; the
@@ -109,17 +109,17 @@ KHook::Return<bool> CVoiceFloodFix::CServerSideClient_ProcessVoiceData(CServerSi
 bool CVoiceFloodFix::ShouldDrop(CServerSideClientBase* pClient, const CCLCMsg_VoiceData& msg)
 {
     // Bots and clients still connecting are left to the engine.
-    if (!pClient || pClient->IsFakeClient() || !pClient->IsInGame())
+    if (!pClient || pClient->IsFakeClient() || pClient->m_nSignonState != SIGNONSTATE_FULL)
         return false;
 
-    const int nSlot = pClient->GetPlayerSlot().Get();
+    const int nSlot = pClient->m_nClientSlot.Get();
     if (nSlot < 0 || nSlot >= ABSOLUTE_PLAYER_LIMIT)
         return true;
 
     // Malformed: no audio, no sender, or a sender that isn't this client.
     if (!msg.has_audio() || !msg.has_xuid())
         return true;
-    if (msg.xuid() == 0 || msg.xuid() != pClient->GetClientSteamID().ConvertToUint64())
+    if (msg.xuid() == 0 || msg.xuid() != pClient->m_SteamID.ConvertToUint64())
         return true;
 
     const CMsgVoiceAudio& audio = msg.audio();

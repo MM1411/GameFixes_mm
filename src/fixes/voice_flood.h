@@ -33,14 +33,12 @@
 
 #include "fix.h"
 #include "plugin.h"
+#include "sdk/netmessages.h"
 #include "utils.hpp"
 
-#include "sdk/CServerSideClient.h"
-#include "sdk/netmessages.h"
-
-#include "dynlibutils/virtual.hpp"
-
 #include <const.h>
+#include <dynlibutils/virtual.hpp>
+#include <engine2/serversideclientbase.h>
 
 #include <chrono>
 #include <cstddef>
@@ -60,9 +58,9 @@ public:
     void OnStartupServer(const GameSessionConfiguration_t& config, const char* pszMapName) override;
 
 public: // Hooks
-    KHook::Return<bool> CServerSideClient_ProcessVoiceData(CServerSideClientBase* pThis, const CCLCMsg_VoiceData_t& msg);
+    KHook::Return<bool> CServerSideClient_ProcessVoiceData(CServerSideClientBase* pThis, const CNetMessagePB<CCLCMsg_VoiceData>& msg);
 
-    KHook::Virtual<CServerSideClientBase, bool, const CCLCMsg_VoiceData_t&>* m_hProcessVoiceData = nullptr;
+    KHook::Virtual<CServerSideClientBase, bool, const CNetMessagePB<CCLCMsg_VoiceData>&>* m_hProcessVoiceData = nullptr;
 
 private:
     using Clock = std::chrono::steady_clock;

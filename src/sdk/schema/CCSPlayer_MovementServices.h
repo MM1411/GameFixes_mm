@@ -1,6 +1,6 @@
 //====== Copyright © 1996-2005, Valve Corporation, All rights reserved. =======
 //
-// Purpose:
+// Purpose: CCSPlayer_MovementServices
 //
 //=============================================================================
 
@@ -10,24 +10,8 @@
 #pragma once
 #endif
 
+#include "CPlayer_MovementServices_Humanoid.h"
 #include "schemasystem_helper.h"
-#include "CBasePlayerPawn.h"
-
-class CPlayerPawnComponent
-{
-public:
-    SCHEMA_FIELD(CBasePlayerPawn*, CPlayerPawnComponent, __m_pChainEntity);
-
-    CBasePlayerPawn* GetPawn() { return __m_pChainEntity(); }
-};
-
-class CPlayer_MovementServices : public CPlayerPawnComponent
-{
-};
-
-class CPlayer_MovementServices_Humanoid : public CPlayer_MovementServices
-{
-};
 
 class CCSPlayer_MovementServices : public CPlayer_MovementServices_Humanoid
 {

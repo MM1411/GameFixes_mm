@@ -24,17 +24,19 @@
  */
 
 #include "slow_animation.h"
+
 #include "scheduler.h"
+#include "schema/CBasePlayerController.h"
+#include "sdk/GameSessionConfiguration.h"
 #include "vprof.hpp"
 
-#include "sdk/CBasePlayerController.h"
-#include "sdk/GameSessionConfiguration.h"
-
-#include <eiface.h>
+#include <engine2/isource2server.h>
+#include <engine2/ivengineserver2.h>
 #include <entitysystem.h>
+#include <gameentitysystem.h>
 #include <interfaces/interfaces.h>
-#include <tier1/KeyValues.h>
-#include <tier1/strtools.h>
+#include <tier0/keyvalues.h>
+#include <tier0/tier0_strtools.h>
 
 void CSlowAnimationFix::ReadConfig(KeyValues* pConfig)
 {

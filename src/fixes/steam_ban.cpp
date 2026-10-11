@@ -28,11 +28,10 @@
 #include "utils.hpp"
 #include "vprof.hpp"
 
-#include "dynlibutils/module.hpp"
-
+#include <dynlibutils/module.hpp>
 #include <steam/steamclientpublic.h>
-#include <tier1/convar.h>
-#include <tier1/KeyValues.h>
+#include <tier0/convar.h>
+#include <tier0/keyvalues.h>
 
 #include <cstdio>
 #include <cstdlib>

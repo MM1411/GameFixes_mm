@@ -1,6 +1,6 @@
 //====== Copyright © 1996-2005, Valve Corporation, All rights reserved. =======
 //
-// Purpose:
+// Purpose: CBasePlayerController
 //
 //=============================================================================
 
@@ -15,6 +15,7 @@
 #include <const.h>
 #include <entityhandle.h>
 #include <entitysystem.h>
+#include <gameentitysystem.h>
 
 enum class PlayerConnectedState : uint32_t
 {

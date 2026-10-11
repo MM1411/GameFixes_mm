@@ -32,7 +32,7 @@
 
 #include "fix.h"
 
-#include <tier1/convar.h>
+#include <tier0/convar.h>
 
 #include <memory>
 

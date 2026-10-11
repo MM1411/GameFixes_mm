@@ -62,6 +62,5 @@ private:
     Timer* m_pUpdateTimer = nullptr;
 
     // The game server's Steam API, usable from GameServerSteamAPIActivated on.
-    CSteamGameServerAPIContext m_steamAPI;
     bool m_bSteamAPIReady = false;
 };

@@ -36,11 +36,9 @@
 #include "plugin.h"
 #include "utils.hpp"
 
-#include "sdk/CServerSideClient.h"
-
-#include "dynlibutils/virtual.hpp"
-
 #include <const.h>
+#include <dynlibutils/virtual.hpp>
+#include <engine2/serversideclientbase.h>
 
 #include <cstdint>
 

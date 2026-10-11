@@ -24,34 +24,32 @@
  */
 
 #include "plugin.h"
-#include "scheduler.h"
-#include "utils.hpp"
-#include "vprof.hpp"
 
-#include "fixes/fix.h"
 #include "fixes/beam_crash.h"
 #include "fixes/demo_record.h"
+#include "fixes/fix.h"
 #include "fixes/hammer_id.h"
 #include "fixes/input_activator_crash.h"
 #include "fixes/rampbug.h"
-#include "fixes/water_jump.h"
 #include "fixes/server_list_players.h"
 #include "fixes/slow_animation.h"
 #include "fixes/steam_ban.h"
 #include "fixes/sv_cheats.h"
 #include "fixes/team_limit.h"
-#include "fixes/workshop_voice.h"
 #include "fixes/voice_flood.h"
-
+#include "fixes/water_jump.h"
+#include "fixes/workshop_voice.h"
+#include "scheduler.h"
 #include "sdk/GameSessionConfiguration.h"
+#include "utils.hpp"
+#include "vprof.hpp"
 
-#include "dynlibutils/module.hpp"
-
-#include "entitysystem.h"
-#include "interfaces/interfaces.h"
-#include "tier1/bufferstring.h"
-#include "tier1/KeyValues.h"
-#include "tier1/strtools.h"
+#include <dynlibutils/module.hpp>
+#include <entitysystem.h>
+#include <interfaces/interfaces.h>
+#include <tier0/buffer_string.h>
+#include <tier0/keyvalues.h>
+#include <tier0/tier0_strtools.h>
 
 #include <cstdio>
 
@@ -226,16 +224,6 @@ bool Plugin::LoadFixes(const FixModules& modules, char* error, size_t maxlen)
     }
 
     return true;
-}
-
-///////////////////////////////////////
-
-// Declared by the SDK's entitysystem.h, defined by whoever links it in.
-CGameEntitySystem* GameEntitySystem()
-{
-    // CGameResourceService::SetEntityResourceManifest
-    // str server_entities
-    return *CMemory(g_pGameResourceServiceServer).Offset(WIN_LINUX(0x58, 0x50)).RCast<CGameEntitySystem**>();
 }
 
 ///////////////////////////////////////

@@ -24,12 +24,12 @@
  */
 
 #include "water_jump.h"
+
+#include "schema/CBasePlayerPawn.h"
+#include "schema/CCSPlayer_MovementServices.h"
 #include "vprof.hpp"
 
-#include "sdk/CBasePlayerPawn.h"
-#include "sdk/CCSPlayer_MovementServices.h"
-
-#include "dynlibutils/module.hpp"
+#include <dynlibutils/module.hpp>
 
 #include <cstdio>
 #include <cstring>

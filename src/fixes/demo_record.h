@@ -34,11 +34,9 @@
 #include "plugin.h"
 #include "utils.hpp"
 
-#include "sdk/CServerSideClient.h"
-
-#include "dynlibutils/virtual.hpp"
-
-#include <tier1/convar.h>
+#include <dynlibutils/virtual.hpp>
+#include <engine2/serversideclientbase.h>
+#include <tier0/convar.h>
 
 #include <memory>
 
