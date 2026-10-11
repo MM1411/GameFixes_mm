@@ -24,9 +24,10 @@
  */
 
 #include "hammer_id.h"
+
 #include "utils.hpp"
 
-#include "dynlibutils/module.hpp"
+#include <dynlibutils/module.hpp>
 
 #include <cstdio>
 

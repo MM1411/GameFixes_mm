@@ -27,10 +27,10 @@
 
 // module.hpp first: vthook.hpp uses DYNLIB_FORCE_INLINE, which only module.hpp
 // defines, and does not include it itself.
-#include "dynlibutils/module.hpp"
-#include "dynlibutils/memaddr.hpp"
-#include "dynlibutils/virtual.hpp"
-#include "dynlibutils/vthook.hpp"
+#include <dynlibutils/memaddr.hpp>
+#include <dynlibutils/module.hpp>
+#include <dynlibutils/virtual.hpp>
+#include <dynlibutils/vthook.hpp>
 
 #include <cstddef>
 #include <cstring>

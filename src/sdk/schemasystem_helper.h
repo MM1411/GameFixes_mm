@@ -23,6 +23,12 @@
  * Project: GameFixes_mm
  */
 
+#ifndef SCHEMASYSTEM_HELPER_H
+#define SCHEMASYSTEM_HELPER_H
+#ifdef _WIN32
+#pragma once
+#endif
+
 //=============================================================================
 //
 // Purpose: Minimal schema field access for standalone Metamod plugins
@@ -43,18 +49,15 @@
 //
 //=============================================================================
 
-#ifndef SCHEMASYSTEM_HELPER_H
-#define SCHEMASYSTEM_HELPER_H
-#ifdef _WIN32
-#pragma once
-#endif
+
+
+#include <entity2/entityinstance.h>
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <entity2/entityinstance.h>
 
 namespace schema
 {

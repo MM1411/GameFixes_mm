@@ -23,14 +23,16 @@
  * Project: GameFixes_mm
  */
 
-// The server's CNavPhysicsInterface, reached through its vtable by RTTI name.
-// Same declaration order as cs2kz-metamod and source2toolkit use; nothing here
-// is instantiated, the vtable pointer is the whole "object".
 #ifndef INAVPHYSICSINTERFACE_H
 #define INAVPHYSICSINTERFACE_H
 #ifdef _WIN32
 #pragma once
 #endif
+
+// The server's CNavPhysicsInterface, reached through its vtable by RTTI name.
+// Same declaration order as cs2kz-metamod and source2toolkit use; nothing here
+// is instantiated, the vtable pointer is the whole "object".
+
 
 #include <gametrace.h>
 #include <ray.h>

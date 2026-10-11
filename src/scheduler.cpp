@@ -24,6 +24,7 @@
  */
 
 #include "scheduler.h"
+
 #include "vprof.hpp"
 
 #include <algorithm>

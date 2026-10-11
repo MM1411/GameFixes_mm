@@ -24,10 +24,11 @@
  */
 
 #include "input_activator_crash.h"
+
 #include "utils.hpp"
 #include "vprof.hpp"
 
-#include "dynlibutils/module.hpp"
+#include <dynlibutils/module.hpp>
 
 #include <cstdio>
 #include <cstring>
