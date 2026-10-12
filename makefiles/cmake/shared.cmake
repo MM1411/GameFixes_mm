@@ -16,10 +16,6 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING
 
 set(CMAKE_CXX_STANDARD 20)
 
-if (LINUX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-endif ()
 
 set(CMAKE_STATIC_LIBRARY_PREFIX "")
 
@@ -27,7 +23,7 @@ set(CMAKE_STATIC_LIBRARY_PREFIX "")
 # s2sdk::s2sdk (linked in CMakeBuilder.cmake) -- SdkHelpers.configureCxx() on the
 # AMBuild side.
 
-add_definitions(-DMETA_IS_SOURCE2)
+# META_IS_SOURCE2 and position independent code come from s2sdk-manifests.
 
 if (DEFINED ENV{GITHUB_SHA_SHORT})
     add_definitions(-DGITHUB_SHA="$ENV{GITHUB_SHA_SHORT}")
@@ -42,6 +38,7 @@ else ()
 endif ()
 
 include_directories(
+    ${CMAKE_SOURCE_DIR}/public
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/sdk
     ${METAMOD_DIR}/core
