@@ -81,7 +81,7 @@ AMBuild, what CI uses (`docker/` on Linux, MSVC on Windows), same as the other `
 
 ```
 mkdir build && cd build
-python ../configure.py --enable-optimize --sdks cs2 --mms_path=$MMSOURCE_DEV --hl2sdk-manifests=$MMSOURCE_DEV/hl2sdk-manifests
+python ../configure.py --enable-optimize --sdks cs2 --mms_path=$MMSOURCE_DEV --s2sdk-manifests=/path/to/s2sdk-manifests
 ambuild
 ```
 
