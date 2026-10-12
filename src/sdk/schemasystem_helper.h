@@ -52,6 +52,7 @@
 
 
 #include <entity2/entityinstance.h>
+#include <networksystem/networkvar.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -157,22 +158,6 @@ namespace schema
             EmbeddedNetworkStateChanged(reinterpret_cast<void*>(pObject), info.offset);
     }
 }
-
-// CNetworkVarChainer is opaque to the SDK, so this only mirrors the members we need.
-class CNetworkVarChainer
-{
-public:
-    CEntityInstance* m_pEntity;
-
-private:
-    uint8_t pad_0000[24];
-
-public:
-    ChangeAccessorFieldPathIndex_t m_PathIndex;
-
-private:
-    uint8_t pad_0024[4];
-};
 
 #define _SCHEMA_FIELD_COMMON(type, className, propName)                                                  \
     /* This points at the propName member; walk back to the owning className */                       \

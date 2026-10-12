@@ -38,13 +38,6 @@
 #include <unordered_map>
 #include <utility>
 
-// The NetworkVar wrapper's NetworkStateChanged starts by checking
-// NetworkStateChangedData::m_nPathIndex against -1: `cmp dword ptr [data+0x38], -1`,
-// data being the second argument (rdx on Windows, rsi on Linux). No other slot of
-// these vtables does that (checked on all NetworkVar_ vtables, 2026-09-23 binaries).
-static constexpr const char* g_pszStateChangedSignature = WIN_LINUX("83 7A 38 FF", "83 7E 38 FF");
-static constexpr std::size_t g_nStateChangedSearchBytes = 32;
-
 #define SCHEMA_SERVER_MODULE WIN_LINUX("server.dll", "libserver.so")
 
 static SchemaClassInfoData_t* FindServerClass(const char* pszClassName)
@@ -155,10 +148,10 @@ void schema::EntityNetworkStateChanged(CEntityInstance* pEntity, int32_t nOffset
 
 void schema::ChainNetworkStateChanged(void* pNetworkVarChainer, int32_t nOffset)
 {
-    CNetworkVarChainer* pChainer = static_cast<CNetworkVarChainer*>(pNetworkVarChainer);
-
-    if (pChainer->m_pEntity)
-        pChainer->m_pEntity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(nOffset), -1, pChainer->m_PathIndex));
+    // s2sdk's chainer passes it on to its entity with its own path index, and drops it
+    // while the entity is still being constructed
+    NetworkStateChangedData data(static_cast<uint32>(nOffset));
+    static_cast<CNetworkVarChainer*>(pNetworkVarChainer)->NetworkStateChanged(data);
 }
 
 // Whether p points into the .text section of the module pModuleAddress lives in.
@@ -177,24 +170,33 @@ static bool IsInModuleText(const void* p, const void* pModuleAddress)
     return address >= s_text.first && address < s_text.second;
 }
 
+// The NetworkVar wrapper's NetworkStateChanged starts by checking
+// NetworkStateChangedData::m_nPathIndex against -1: `cmp dword ptr [reg+0x38], -1`,
+// 83 /7 with a disp8 of 0x38 and an imm8 of -1, whatever register holds the data,
+// within its first 32 bytes. No other slot of these vtables does that (checked on all
+// NetworkVar_ vtables, 2026-09-23 binaries); s2binlib's find_networkvar_vtable_statechanged
+// tests the same.
+static bool ChecksPathIndex(const std::uint8_t* pCode)
+{
+    for (std::size_t i = 0; i + 4 <= 32; ++i)
+    {
+        const std::uint8_t modrm = pCode[i + 1];
+        // mod 01 (disp8), reg 111 (/7 = cmp), rm not 100 (that one takes a SIB byte)
+        if (pCode[i] == 0x83 && (modrm & 0xF8) == 0x78 && modrm != 0x7C && pCode[i + 2] == 0x38 && pCode[i + 3] == 0xFF)
+            return true;
+    }
+
+    return false;
+}
+
 static int FindNetworkStateChangedIndex(void** pVtable)
 {
-    static const auto s_pattern = DynLibUtils::ParsePattern(g_pszStateChangedSignature);
-
     // The vtable ends where its slots stop pointing into code (Linux: the next
     // vtable's offset-to-top, Windows: its RTTI locator).
     for (int i = 0; i < 256 && IsInModuleText(pVtable[i], pVtable); ++i)
     {
-        const auto* pCode = static_cast<const std::uint8_t*>(pVtable[i]);
-        for (std::size_t j = 0; j + s_pattern.m_nSize <= g_nStateChangedSearchBytes; ++j)
-        {
-            std::size_t k = 0;
-            while (k < s_pattern.m_nSize && (s_pattern.m_aMask[k] == '?' || pCode[j + k] == s_pattern.m_aBytes[k]))
-                ++k;
-
-            if (k == s_pattern.m_nSize)
-                return i;
-        }
+        if (ChecksPathIndex(static_cast<const std::uint8_t*>(pVtable[i])))
+            return i;
     }
 
     return -1;
