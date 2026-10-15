@@ -11,7 +11,7 @@
 #endif
 
 #include "CGameSceneNode.h"
-#include "schemasystem_helper.h"
+#include "sdk/schemasystem_helper.h"
 
 class CBodyComponent
 {

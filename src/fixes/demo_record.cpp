@@ -25,7 +25,7 @@
 
 #include "demo_record.h"
 
-#include "sdk/GameSessionConfiguration.h"
+#include <engine2/gamesessionconfiguration.h>
 #include "utils.hpp"
 #include "vprof.hpp"
 
@@ -74,9 +74,9 @@ void CDemoRecordFix::OnStartupServer(const GameSessionConfiguration_t& config, c
     if (!IsTvEnabled())
         return;
 
-    // The engine reads maxPlayers after this Pre hook, so the GOTV slot comes on top of the configured player count instead of eating one.
-    Log("GOTV is enabled, expanding the session's maxplayers (%i -> %i)", config.maxPlayers, config.maxPlayers + 1);
-    const_cast<GameSessionConfiguration_t&>(config).maxPlayers++;
+    // The engine reads max_clients after this Pre hook, so the GOTV slot comes on top of the configured player count instead of eating one.
+    Log("GOTV is enabled, expanding the session's maxplayers (%u -> %u)", config.max_clients(), config.max_clients() + 1);
+    const_cast<GameSessionConfiguration_t&>(config).set_max_clients(config.max_clients() + 1);
 }
 
 KHook::Return<void> CDemoRecordFix::CServerSideClient_Disconnect(CServerSideClientBase* pThis, ENetworkDisconnectionReason reason, const char* pszInternalReason)

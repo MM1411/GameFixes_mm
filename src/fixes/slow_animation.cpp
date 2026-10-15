@@ -26,8 +26,8 @@
 #include "slow_animation.h"
 
 #include "scheduler.h"
-#include "schema/CBasePlayerController.h"
-#include "sdk/GameSessionConfiguration.h"
+#include "sdk/schema/CBasePlayerController.h"
+#include <engine2/gamesessionconfiguration.h>
 #include "vprof.hpp"
 
 #include <engine2/isource2server.h>

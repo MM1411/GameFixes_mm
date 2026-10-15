@@ -31,7 +31,7 @@
 
 #include "fix.h"
 #include "plugin.h"
-#include "schema/CBeam.h"
+#include "sdk/schema/CBeam.h"
 
 class CBeamCrashFix final : public CFix
 {

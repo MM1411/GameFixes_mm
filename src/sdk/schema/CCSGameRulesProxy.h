@@ -12,7 +12,7 @@
 
 #include "CBaseEntity.h"
 #include "CCSGameRules.h"
-#include "schemasystem_helper.h"
+#include "sdk/schemasystem_helper.h"
 
 class CCSGameRulesProxy : public CBaseEntity
 {

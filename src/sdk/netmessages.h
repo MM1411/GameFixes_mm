@@ -29,8 +29,8 @@
 //
 //=============================================================================
 
-#ifndef NETMESSAGES_H
-#define NETMESSAGES_H
+#ifndef SDK_NETMESSAGES_H
+#define SDK_NETMESSAGES_H
 #ifdef _WIN32
 #pragma once
 #endif
@@ -211,4 +211,4 @@ class CSVCMsg_Broadcast_Command_t :          public CNetMessagePBTyped< svc_Broa
 class CSVCMsg_HltvFixupOperatorStatus_t :    public CNetMessagePBTyped< svc_HltvFixupOperatorStatus, CSVCMsg_HltvFixupOperatorStatus > {};
 class CSVCMsg_UserCommands_t :               public CNetMessagePBTyped< svc_UserCmds, CSVCMsg_UserCommands, SG_HLTVREPLAY > {};
 
-#endif // NETMESSAGES_H
+#endif // SDK_NETMESSAGES_H

@@ -11,7 +11,7 @@
 #endif
 
 #include "VPhysicsCollisionAttribute_t.h"
-#include "schemasystem_helper.h"
+#include "sdk/schemasystem_helper.h"
 
 class CCollisionProperty
 {

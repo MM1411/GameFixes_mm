@@ -40,7 +40,6 @@ endif ()
 include_directories(
     ${CMAKE_SOURCE_DIR}/public
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/sdk
     ${METAMOD_DIR}/core
     # KHook: metamod's detour library. Header-only on the plugin side, the
     # engine behind it lives in metamod.so and is handed over by PLUGIN_SAVEVARS().

@@ -40,7 +40,7 @@
 #include "fixes/water_jump.h"
 #include "fixes/workshop_voice.h"
 #include "scheduler.h"
-#include "sdk/GameSessionConfiguration.h"
+#include <engine2/gamesessionconfiguration.h>
 #include "utils.hpp"
 #include "vprof.hpp"
 

@@ -25,8 +25,8 @@
 
 #include "rampbug.h"
 
-#include "schema/CBasePlayerPawn.h"
-#include "schema/CCSPlayer_MovementServices.h"
+#include "sdk/schema/CBasePlayerPawn.h"
+#include "sdk/schema/CCSPlayer_MovementServices.h"
 #include "sdk/INavPhysicsInterface.h"
 #include "vprof.hpp"
 

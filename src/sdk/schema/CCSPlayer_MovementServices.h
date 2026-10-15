@@ -11,7 +11,7 @@
 #endif
 
 #include "CPlayer_MovementServices_Humanoid.h"
-#include "schemasystem_helper.h"
+#include "sdk/schemasystem_helper.h"
 
 class CCSPlayer_MovementServices : public CPlayer_MovementServices_Humanoid
 {

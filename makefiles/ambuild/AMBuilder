@@ -38,7 +38,6 @@ for sdk_target in MMSPlugin.sdk_targets:
 
   binary.compiler.cxxincludes += [
     os.path.join(builder.sourcePath, 'src'),
-    os.path.join(builder.sourcePath, 'src', 'sdk'),
     os.path.join(builder.sourcePath, 'vendor'),
     os.path.join(builder.sourcePath, 'vendor', 'dynlibutils', 'include'),
     os.path.join(builder.sourcePath, 'vendor', 'dynlibutils', 'include', 'dynlibutils')

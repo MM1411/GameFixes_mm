@@ -12,7 +12,7 @@
 
 #include "CBodyComponent.h"
 #include "CCollisionProperty.h"
-#include "schemasystem_helper.h"
+#include "sdk/schemasystem_helper.h"
 
 #include <const.h>
 #include <entityhandle.h>

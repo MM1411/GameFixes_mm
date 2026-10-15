@@ -30,7 +30,7 @@
 #pragma once
 
 #include "fix.h"
-#include "schema/CCSGameRules.h"
+#include "sdk/schema/CCSGameRules.h"
 
 #include <igameevents.h>
 
