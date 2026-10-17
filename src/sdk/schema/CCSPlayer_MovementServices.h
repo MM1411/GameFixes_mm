@@ -17,6 +17,8 @@ class CCSPlayer_MovementServices : public CPlayer_MovementServices_Humanoid
 {
 public:
     SCHEMA_FIELD(bool, CCSPlayer_MovementServices, m_bDucked);
+    // Counted up whenever game code moves the player outside the movement pass (a teleport)
+    SCHEMA_FIELD(int32_t, CCSPlayer_MovementServices, m_nGameCodeHasMovedPlayerAfterCommand);
 };
 
 #endif // CCSPLAYER_MOVEMENTSERVICES_H

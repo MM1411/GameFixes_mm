@@ -31,6 +31,12 @@
 // gets the same treatment on the way down a ramp. CS2KZ's fix, as carried by
 // CS2Fixes-RampbugFix (github.com/Interesting-exe/CS2Fixes-RampbugFix). It
 // lessens rampbugs, it does not end them.
+//
+// The game's own TryPlayerMove now pushes the end point off a single hit plane
+// (Valve's own mitigation), so putting our walk back over the game's
+// ("tryplayermove_override") is off by default; the walk still runs, for the
+// last valid plane CategorizePosition works with. What a player was on is
+// forgotten when the game moves them outside the pass (a teleport).
 #pragma once
 
 #include "fix.h"
@@ -57,6 +63,7 @@ public:
 
     const char* GetName() const override { return "rampbug"; }
 
+    void ReadConfig(KeyValues* pConfig) override;
     bool Load(const FixModules& modules, char* error, size_t maxlen) override;
     void Unload() override;
 
@@ -80,6 +87,7 @@ private:
         CMoveData* pMoveData = nullptr;       // the pass in flight, null outside ProcessMovement
         bool bProcessingMovement = false;
         bool bPreviousOnGround = false;
+        int nGameCodeMoves = 0;               // m_nGameCodeHasMovedPlayerAfterCommand last seen
         bool bDidTPM = false;                 // TryPlayerMove ran during this pass
         bool bOverrideTPM = false;            // our own trace result should replace the game's
         Vector vecTPMVelocity;                // vec3_invalid until TryPlayerMove ran
@@ -90,7 +98,12 @@ private:
         Vector vecLandingVelocity;
 
         void Reset();
+        // Forgets what the player was on, keeping the pass in flight
+        void ForgetSurface();
     };
+
+    // "tryplayermove_override": put our own walk back when the game's moved the player elsewhere
+    bool m_bOverrideTryPlayerMove = false;
 
     // The state of the pawn a movement service belongs to; null for anything that is not a player.
     PlayerState* GetState(CCSPlayer_MovementServices* pServices, CBasePlayerPawn** ppPawn);

@@ -36,6 +36,7 @@
 #include <engine2/isource2server.h>
 #include <engine2/ivengineserver2.h>
 #include <mathlib/mathlib.h>
+#include <tier0/keyvalues.h>
 
 #include <cfloat>
 #include <cmath>
@@ -57,7 +58,7 @@ namespace
     {
         explicit CTraceFilterPlayerMovementCS(CBasePlayerPawn* pPawn) :
             CTraceFilter(pPawn, GameEntitySystem()->GetEntityInstance(pPawn->m_hOwnerEntity()), pPawn->m_pCollision()->m_collisionAttribute().m_nHierarchyId(),
-                         pPawn->m_pCollision()->m_collisionAttribute().m_nInteractsWith(), COLLISION_GROUP_PLAYER, true)
+                         pPawn->m_pCollision()->m_collisionAttribute().m_nInteractsWith(), COLLISION_GROUP_PLAYER_MOVEMENT, true)
         {
             EnableInteractsAsLayer(LAYER_INDEX_CONTENTS_PLAYER);
             m_nObjectSetMask = RNQUERY_OBJECTS_ALL;
@@ -85,6 +86,12 @@ void CRampbugFix::PlayerState::Reset()
     pMoveData = nullptr;
     bProcessingMovement = false;
     bPreviousOnGround = false;
+    nGameCodeMoves = 0;
+    ForgetSurface();
+}
+
+void CRampbugFix::PlayerState::ForgetSurface()
+{
     bDidTPM = false;
     bOverrideTPM = false;
     vecTPMVelocity = vec3_invalid;
@@ -93,6 +100,11 @@ void CRampbugFix::PlayerState::Reset()
     vecTakeoffVelocity = vec3_origin;
     vecLandingOrigin = vec3_origin;
     vecLandingVelocity = vec3_origin;
+}
+
+void CRampbugFix::ReadConfig(KeyValues* pConfig)
+{
+    m_bOverrideTryPlayerMove = pConfig->GetBool("tryplayermove_override", false);
 }
 
 CRampbugFix::CRampbugFix() :
@@ -143,7 +155,7 @@ bool CRampbugFix::Load(const FixModules& modules, char* error, size_t maxlen)
     m_hTryPlayerMove->Configure(pTryPlayerMove.GetPtr());
     m_hCategorizePosition->Configure(pCategorizePosition.GetPtr());
 
-    Log("hooked ProcessMovement (%p), TryPlayerMove (%p) and CategorizePosition (%p); CNavPhysicsInterface vtable at %p", pProcessMovement.GetPtr(), pTryPlayerMove.GetPtr(), pCategorizePosition.GetPtr(), m_pNavPhysicsVTable);
+    Log("hooked ProcessMovement (%p), TryPlayerMove (%p) and CategorizePosition (%p); CNavPhysicsInterface vtable at %p; TryPlayerMove override %s", pProcessMovement.GetPtr(), pTryPlayerMove.GetPtr(), pCategorizePosition.GetPtr(), m_pNavPhysicsVTable, m_bOverrideTryPlayerMove ? "on" : "off");
     return true;
 }
 
@@ -193,9 +205,15 @@ CRampbugFix::PlayerState* CRampbugFix::GetState(CCSPlayer_MovementServices* pSer
     return &m_states[nSlot];
 }
 
+// Inside a pass the move data is where the player is: the game writes the scene
+// node's origin only after each subtick step, so reading that one would trace
+// from where the player was before this step's move.
 void CRampbugFix::GetOrigin(const PlayerState& state, CBasePlayerPawn* pPawn, Vector& vecOut)
 {
-    vecOut = pPawn->m_CBodyComponent()->m_pSceneNode()->m_vecAbsOrigin();
+    if (state.bProcessingMovement && state.pMoveData)
+        vecOut = state.pMoveData->m_vecAbsOrigin;
+    else
+        vecOut = pPawn->m_CBodyComponent()->m_pSceneNode()->m_vecAbsOrigin();
 }
 
 void CRampbugFix::GetVelocity(const PlayerState& state, CBasePlayerPawn* pPawn, Vector& vecOut)
@@ -231,10 +249,7 @@ void CRampbugFix::GetBounds(CCSPlayer_MovementServices* pServices, PlayerBounds_
 
 void CRampbugFix::RegisterLanding(PlayerState& state, CBasePlayerPawn* pPawn, const Vector& vecVelocity)
 {
-    if (state.bProcessingMovement && state.pMoveData)
-        state.vecLandingOrigin = state.pMoveData->m_vecAbsOrigin;
-    else
-        GetOrigin(state, pPawn, state.vecLandingOrigin);
+    GetOrigin(state, pPawn, state.vecLandingOrigin);
 
     state.vecLandingVelocity = vecVelocity;
 }
@@ -317,6 +332,15 @@ KHook::Return<void> CRampbugFix::CCSPlayer_MovementServices_ProcessMovement(CCSP
     PlayerState* pState = GetState(pThis, &pPawn);
     if (!pState)
         return { KHook::Action::Ignore };
+
+    // Moved by game code since the last pass (a teleport): the surface it was on is not where it is now
+    const int nGameCodeMoves = pThis->m_nGameCodeHasMovedPlayerAfterCommand();
+    if (nGameCodeMoves != pState->nGameCodeMoves)
+    {
+        pState->nGameCodeMoves = nGameCodeMoves;
+        pState->ForgetSurface();
+        pState->bPreviousOnGround = (pPawn->m_fFlags() & FL_ONGROUND) != 0;
+    }
 
     pState->pMoveData = static_cast<CMoveData*>(pMove);
     pState->bDidTPM = false;
@@ -579,6 +603,10 @@ KHook::Return<void> CRampbugFix::CCSPlayer_MovementServices_TryPlayerMovePost(CC
     CBasePlayerPawn* pPawn = nullptr;
     PlayerState* pState = GetState(pThis, &pPawn);
     if (!pState)
+        return { KHook::Action::Ignore };
+
+    // Our walk ending in a standstill is no result to put back
+    if (!m_bOverrideTryPlayerMove || !pState->bOverrideTPM || pState->vecTPMVelocity == vec3_invalid || pState->vecTPMVelocity.LengthSqr() < 1.0f)
         return { KHook::Action::Ignore };
 
     Vector velocity;
