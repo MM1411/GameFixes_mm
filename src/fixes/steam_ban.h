@@ -30,6 +30,13 @@
 // below sv_kick_players_with_cooldown 2, the competitive-cooldown entries the
 // pass would still act on; Post clears whatever the pass left in it, so a
 // stale entry can't spread to the next player to join.
+//
+// Besides the whitelist, other plugins allow accounts at runtime through
+// IGameFixes (FUNPLAY: its active admins). An account the pass would act on
+// that nobody allowed yet is held for "hold_seconds" from when it first shows
+// up in the map: the pass is skipped while one is held -- the entry can't be
+// taken out and put back, the map only allows structural access -- and runs as
+// usual once the hold is over.
 #pragma once
 
 #include "fix.h"
@@ -39,6 +46,9 @@
 
 #include <tier0/utlmap.h>
 
+#include <chrono>
+#include <cstdint>
+#include <unordered_map>
 #include <unordered_set>
 
 class CSteamBanFix final : public CFix
@@ -51,6 +61,10 @@ public:
     void ReadConfig(KeyValues* pConfig) override;
     bool Load(const FixModules& modules, char* error, size_t maxlen) override;
     void Unload() override;
+
+    // IGameFixes: accounts allowed at runtime, on top of the whitelist
+    bool AllowAccount(uint64_t steamId64);
+    bool DisallowAccount(uint64_t steamId64);
 
 public: // Hooks
     KHook::Return<void> GameSystem_Think_CheckSteamBan();
@@ -67,6 +81,17 @@ private:
     // "clear_after_pass": empty the map once the pass ran, so an entry the
     // engine already acted on never reaches the next player to join.
     bool m_bClearAfterPass = true;
+
+    // Accounts other plugins allowed (IGameFixes), Steam32 account ids
+    std::unordered_set<uint32> m_allowed;
+
+    // "hold_seconds": how long an account no one allowed yet is kept from the
+    // pass after it first shows up in the map; 0 turns holding off
+    std::chrono::duration<float> m_holdTime{15.0f};
+    std::unordered_map<uint32, std::chrono::steady_clock::time_point> m_firstSeen;
+
+    // The pass was skipped this frame: its entries stay for the next one
+    bool m_bPassSkipped = false;
 
     // CCSGameRules::sm_mapGcBanInformation, keyed by account id. The third
     // template argument is deliberately uint32, not a real comparator, to

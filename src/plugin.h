@@ -35,16 +35,24 @@
 #include <igameevents.h>
 #include <ISmmPlugin.h>
 
+#include "IGameFixes.h"
+
 #include <memory>
 #include <vector>
 
 class CFix;
 struct FixModules;
 
-class Plugin final : public ISmmPlugin, public IMetamodListener
+class Plugin final : public ISmmPlugin, public IMetamodListener, public IGameFixes
 {
 public:
     Plugin();
+
+    void* OnMetamodQuery(const char* iface, int* ret) override;
+
+public: // IGameFixes
+    bool SteamBanAllowAccount(uint64_t steamId64) override;
+    bool SteamBanDisallowAccount(uint64_t steamId64) override;
 
     bool Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool late) override;
     bool Unload(char* error, size_t maxlen) override;
@@ -70,6 +78,8 @@ public: // Hooks
 
 private:
     std::vector<std::unique_ptr<CFix>> CreateFixes();
+    // A loaded fix by its name, or null
+    CFix* FindFix(const char* pszName) const;
     bool LoadFixes(const FixModules& modules, char* error, size_t maxlen);
 
     std::vector<std::unique_ptr<CFix>> m_fixes;

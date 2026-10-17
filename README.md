@@ -13,11 +13,11 @@
 | `hammer_id` | `SetSchemaHammerUniqueId` skips `m_sUniqueHammerID` behind a `jnz`; patched to `jmp` so every entity gets its id. |
 | `slow_animation` | `curtime` is a 32-bit float and loses precision after a day or two on one map (sluggish animations, movement, lag compensation). While the server is empty at a check, the map is reloaded; the remaining `mp_timelimit` is carried over. `reload_interval` sets the check period in seconds. |
 | `workshop_voice` | Clients key voice playback off the `xuid` in `svc_VoiceData`; on workshop maps it doesn't identify the speaker uniquely, streams collide and players stop hearing each other. Every speaker gets a distinct xuid per listener, rewritten in place in `CServerSideClient::SendNetMessage` (once per recipient). Seeds reset on every map change. |
-| `steam_ban` | The engine's per-frame GC ban / competitive cooldown kick pass (`GameSystem_Think_CheckSteamBan`, hooked by signature). Accounts in `whitelist` (SteamID64s) are stripped out before it runs, so are competitive cooldowns while `sv_kick_players_with_cooldown` is below 2, and with `clear_after_pass` whatever it leaves behind is cleared so a stale entry can't hit the next player to join. |
-| `team_limit` | On every `round_start`, `CCSGameRules`' spawnable/max T and CT counts are raised to maxplayers, so a join is never refused because a team is "full". |
+| `steam_ban` | The engine's per-frame GC ban / competitive cooldown kick pass (`GameSystem_Think_CheckSteamBan`, hooked by signature). Accounts in `whitelist` (SteamID64s) are stripped out before it runs, so are competitive cooldowns while `sv_kick_players_with_cooldown` is below 2, and with `clear_after_pass` whatever it leaves behind is cleared so a stale entry can't hit the next player to join. Other plugins allow accounts at runtime through `IGameFixes` (below); an account nobody allowed yet is held for `hold_seconds` before the pass may kick it. |
+| `team_limit` | `CCSGameRules`' max T/CT counts and enabled spawn point counts are kept at maxplayers every frame, so a join is never refused because a team is "full", also on maps with few spawns. |
 | `input_activator_crash` | `CBaseFilter::InputTestActivator` dereferences the input's activator unchecked; a `TestActivator` fired with none crashes the server. Those calls are dropped. |
 | `sv_cheats` | Turning `sv_cheats` off leaves anyone in noclip flying. Every such pawn goes back to `MOVETYPE_WALK` the moment the cvar flips to 0. |
-| `rampbug` | Surf ramps: a movement trace that stops short of a ramp or lands on its edge feeds `TryPlayerMove` a plane the player never hit, and they are flung off. The traces are redone from a small offset along the last valid plane and a bad result is put back (CS2KZ's fix, via CS2Fixes-RampbugFix). Lessens rampbugs, does not end them. |
+| `rampbug` | Surf ramps: a movement trace that stops short of a ramp or lands on its edge feeds `TryPlayerMove` a plane the player never hit, and they are flung off. The traces are redone from a small offset along the last valid plane and, with `tryplayermove_override` (off by default, the game has its own mitigation now), a bad result is put back (CS2KZ's fix, via CS2Fixes-RampbugFix). What a player was on is forgotten on a teleport. Lessens rampbugs, does not end them. |
 | `water_jump` | Touching the bottom of a body of water, the `CategorizePosition` after `WaterMove` counts the player as standing on it and a jump out of the water no longer takes. That one call is skipped. |
 | `voice_flood` | Malformed (`clc_VoiceData` with no audio, a sender other than the client, an unknown format, packets with no data) or oversized voice messages -- over 16 KiB or 64 packets -- are dropped in `CServerSideClient::ProcessVoiceData` before the engine handles them, and every client is held to 192 messages, 256 KiB and 1024 packets per second. Nobody is kicked. |
 | `server_list_players` | Pushes every connected player's SteamID, name and score to the Steam game server API every `update_interval` seconds, so the server browser lists the players. Port of [Source2ZE/ServerListPlayersFix](https://github.com/Source2ZE/ServerListPlayersFix). |
@@ -39,6 +39,7 @@ A fix that fails to find what it needs (a signature, a vtable) is logged and lef
 {
 	"enable"	"1"
 	"clear_after_pass"	"1"
+	"hold_seconds"	"15"
 	"whitelist"
 	{
 		"Slynx"	"76561198000000000"
@@ -46,9 +47,23 @@ A fix that fails to find what it needs (a signature, a vtable) is logged and lef
 }
 ```
 
+## Interface for other plugins
+
+`public/IGameFixes.h` (`IGameFixes001`), through metamod:
+
+```cpp
+IGameFixes* pGameFixes = static_cast<IGameFixes*>(g_SMAPI->MetaFactory(GAMEFIXES_INTERFACE_VERSION, nullptr, nullptr));
+pGameFixes->SteamBanAllowAccount(steamId64);    // steam_ban leaves the account alone
+pGameFixes->SteamBanDisallowAccount(steamId64);
+```
+
+A call to a fix that is off does nothing and returns false.
+
 ## Layout
 
 ```
+public/
+  IGameFixes.h      what other plugins can call
 src/
   plugin.*          metamod glue: interfaces, ini, the shared GameFrame/StartupServer hooks
   scheduler.*       timers + next-frame queue, ticked from GameFrame

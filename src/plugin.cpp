@@ -226,6 +226,45 @@ bool Plugin::LoadFixes(const FixModules& modules, char* error, size_t maxlen)
     return true;
 }
 
+CFix* Plugin::FindFix(const char* pszName) const
+{
+    for (const auto& fix : m_fixes)
+    {
+        if (!V_strcmp(fix->GetName(), pszName))
+            return fix.get();
+    }
+
+    return nullptr;
+}
+
+void* Plugin::OnMetamodQuery(const char* iface, int* ret)
+{
+    if (!V_strcmp(iface, GAMEFIXES_INTERFACE_VERSION))
+    {
+        if (ret)
+            *ret = META_IFACE_OK;
+
+        return static_cast<IGameFixes*>(this);
+    }
+
+    if (ret)
+        *ret = META_IFACE_FAILED;
+
+    return nullptr;
+}
+
+bool Plugin::SteamBanAllowAccount(uint64_t steamId64)
+{
+    auto* pFix = static_cast<CSteamBanFix*>(FindFix("steam_ban"));
+    return pFix && pFix->AllowAccount(steamId64);
+}
+
+bool Plugin::SteamBanDisallowAccount(uint64_t steamId64)
+{
+    auto* pFix = static_cast<CSteamBanFix*>(FindFix("steam_ban"));
+    return pFix && pFix->DisallowAccount(steamId64);
+}
+
 ///////////////////////////////////////
 
 const char* Plugin::GetLicense() { return "GPLv3"; }
