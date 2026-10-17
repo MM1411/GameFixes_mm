@@ -141,7 +141,7 @@ bool CVoiceFloodFix::ShouldDrop(CServerSideClientBase* pClient, const CCLCMsg_Vo
     if (nMessageBytes > kMaxMessageBytes)
         return true;
 
-    const uint32_t packets = std::max(nOffsets, nPackets);
+    const uint32_t packets = (std::max)(nOffsets, nPackets);
     const size_t cost = nMessageBytes + kBytesPerPacket * packets;
     if (cost > kMaxMessageBytes)
         return true;

@@ -48,7 +48,7 @@ CSteamBanFix::CSteamBanFix() :
 void CSteamBanFix::ReadConfig(KeyValues* pConfig)
 {
     m_bClearAfterPass = pConfig->GetBool("clear_after_pass", true);
-    m_holdTime = std::chrono::duration<float>(std::max(pConfig->GetFloat("hold_seconds", 15.0f), 0.0f));
+    m_holdTime = std::chrono::duration<float>((std::max)(pConfig->GetFloat("hold_seconds", 15.0f), 0.0f));
 
     KeyValues* pWhitelist = pConfig->FindKey("whitelist");
     if (!pWhitelist)
