@@ -15,10 +15,10 @@
 class CCSGameRules
 {
 public:
-    SCHEMA_FIELD(int32_t, CCSGameRules, m_iNumSpawnableTerrorist);
-    SCHEMA_FIELD(int32_t, CCSGameRules, m_iNumSpawnableCT);
     SCHEMA_FIELD(int32_t, CCSGameRules, m_iMaxNumTerrorists);
     SCHEMA_FIELD(int32_t, CCSGameRules, m_iMaxNumCTs);
+    SCHEMA_FIELD(int32_t, CCSGameRules, m_iSpawnPointCount_Terrorist);
+    SCHEMA_FIELD(int32_t, CCSGameRules, m_iSpawnPointCount_CT);
 };
 
 #endif // CCSGAMERULES_H

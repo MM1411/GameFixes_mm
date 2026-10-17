@@ -36,18 +36,16 @@
 #include <interfaces/interfaces.h>
 #include <tier0/tier0_strtools.h>
 
+#include <initializer_list>
+
 bool CTeamLimitFix::Load(const FixModules& modules, char* error, size_t maxlen)
 {
-    // Nothing to resolve; the listener goes in once the game event manager exists.
+    // Nothing to resolve; the rules object is looked up in the first frame of a map.
     return true;
 }
 
 void CTeamLimitFix::Unload()
 {
-    if (m_pGameEventManager)
-        m_pGameEventManager->RemoveListener(this);
-
-    m_pGameEventManager = nullptr;
     m_pGameRules = nullptr;
 }
 
@@ -57,34 +55,26 @@ void CTeamLimitFix::OnStartupServer(const GameSessionConfiguration_t& config, co
     m_pGameRules = nullptr;
 }
 
-void CTeamLimitFix::OnGameEventManagerReady(IGameEventManager2* pManager)
+void CTeamLimitFix::OnGameFrame(bool simulating)
 {
-    m_pGameEventManager = pManager;
-    m_pGameEventManager->AddListener(this, "round_start", true);
+    if (!simulating)
+        return;
 
-    Log("listening for round_start");
-}
-
-void CTeamLimitFix::FireGameEvent(IGameEvent* pEvent)
-{
-    GF_VPROF("GameFixes::team_limit::FireGameEvent");
+    GF_VPROF("GameFixes::team_limit::OnGameFrame");
 
     CCSGameRules* pGameRules = GetGameRules();
     CGlobalVars* pGlobals = g_pEngineServer->GetServerGlobals();
     if (!pGameRules || !pGlobals)
         return;
 
+    // None of these are networked; a plain write is enough
     const int iMaxPlayers = pGlobals->maxClients;
-
-    pGameRules->m_iNumSpawnableTerrorist() = iMaxPlayers;
-    pGameRules->m_iNumSpawnableTerrorist.NetworkStateChanged();
-    pGameRules->m_iMaxNumTerrorists() = iMaxPlayers;
-    pGameRules->m_iMaxNumTerrorists.NetworkStateChanged();
-
-    pGameRules->m_iNumSpawnableCT() = iMaxPlayers;
-    pGameRules->m_iNumSpawnableCT.NetworkStateChanged();
-    pGameRules->m_iMaxNumCTs() = iMaxPlayers;
-    pGameRules->m_iMaxNumCTs.NetworkStateChanged();
+    for (int32_t* pLimit : { &pGameRules->m_iMaxNumTerrorists(), &pGameRules->m_iMaxNumCTs(),
+                             &pGameRules->m_iSpawnPointCount_Terrorist(), &pGameRules->m_iSpawnPointCount_CT() })
+    {
+        if (*pLimit < iMaxPlayers)
+            *pLimit = iMaxPlayers;
+    }
 }
 
 CCSGameRules* CTeamLimitFix::GetGameRules()

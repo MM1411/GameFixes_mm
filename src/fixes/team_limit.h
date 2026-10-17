@@ -23,18 +23,20 @@
  * Project: GameFixes_mm
  */
 
-// The game caps how many players may spawn on each team from the map's spawn
-// points, so a join gets refused as "team full" on maps with few spawns. On
-// every round_start, CCSGameRules' spawnable/max T and CT counts are raised
-// to maxplayers.
+// A join is refused as "team full" once a team has as many players as the
+// smaller of CCSGameRules' m_iMaxNum<team> and m_iSpawnPointCount_<team>, the
+// number of enabled spawn points for it. The game sets the first at level init
+// and recounts the second whenever a spawn point is created, enabled or
+// disabled -- maps do that mid-round -- so both are raised to maxplayers every
+// frame, when they are below it. Players beyond the map's spawn points share
+// them. m_iNumSpawnable<team> are live player counts the game balances teams
+// with, and are left alone.
 #pragma once
 
 #include "fix.h"
 #include "sdk/schema/CCSGameRules.h"
 
-#include <igameevents.h>
-
-class CTeamLimitFix final : public CFix, public IGameEventListener2
+class CTeamLimitFix final : public CFix
 {
 public:
     const char* GetName() const override { return "team_limit"; }
@@ -43,15 +45,10 @@ public:
     void Unload() override;
 
     void OnStartupServer(const GameSessionConfiguration_t& config, const char* pszMapName) override;
-    void OnGameEventManagerReady(IGameEventManager2* pManager) override;
-
-public: // IGameEventListener2 (round_start)
-    void FireGameEvent(IGameEvent* pEvent) override;
+    void OnGameFrame(bool simulating) override;
 
 private:
     CCSGameRules* GetGameRules();
-
-    IGameEventManager2* m_pGameEventManager = nullptr;
 
     // cs_gamerules' rules object, looked up once per map.
     CCSGameRules* m_pGameRules = nullptr;
