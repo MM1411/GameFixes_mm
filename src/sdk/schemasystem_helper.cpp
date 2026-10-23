@@ -54,11 +54,11 @@ static SchemaClassInfoData_t* FindServerClass(const char* pszClassName)
 static SchemaClassFieldData_t* FindField(SchemaClassInfoData_t* pClassInfo, const char* pszFieldName,
                                          SchemaClassInfoData_t** ppDeclaring = nullptr)
 {
-    for (; pClassInfo; pClassInfo = pClassInfo->m_nBaseClassCount ? pClassInfo->m_pBaseClasses[0].m_pClass : nullptr)
+    for (; pClassInfo; pClassInfo = pClassInfo->m_nNumBaseClasses ? pClassInfo->m_pBaseClasses[0].m_pClass : nullptr)
     {
-        for (uint16 i = 0; i < pClassInfo->m_nFieldCount; ++i)
+        for (uint16 i = 0; i < pClassInfo->m_nNumFields; ++i)
         {
-            if (std::strcmp(pClassInfo->m_pFields[i].m_pszName, pszFieldName) == 0)
+            if (std::strcmp(pClassInfo->m_pFields[i].m_pName, pszFieldName) == 0)
             {
                 if (ppDeclaring)
                     *ppDeclaring = pClassInfo;
@@ -133,7 +133,7 @@ schema::NetworkInfo_t schema::GetNetworkInfo(const char* pszClassName, const cha
     SchemaClassInfoData_t* pDeclaring = nullptr;
     FindField(FindServerClass(pszClassName), pszFieldName, &pDeclaring);
 
-    int index = pDatabase->m_ClassInfos.Find(pDeclaring->m_pszName);
+    int index = pDatabase->m_ClassInfos.Find(pDeclaring->m_pName);
     info.networked = index != pDatabase->m_ClassInfos.InvalidIndex()
                      && pDatabase->m_ClassInfos[index]->FindField(pszFieldName) != nullptr;
     info.chainOffset = GetChainOffset(pszClassName);

@@ -78,7 +78,7 @@ bool CSteamBanFix::Load(const FixModules& modules, char* error, size_t maxlen)
     // is the rip-relative operand.
     // Location to CUtlMap unk that is referenced on Windows by function with "Notification about user penalty: %u/%u (%u sec)\n" string
     // On Linux, a qword appears twice in GameSystem_Think_CheckSteamBan, and thrice in a sub-function of the function used for Windows (1 top, 2 bottom), the only other reference to this qword is some convar registration function with two unks above, sm_mapGcBanInformation is the unk further away
-    CMemory pMapRef = modules.server.FindPattern(ParseStringPattern(WIN_LINUX("48 8D 0D ? ? ? ? 0F 11 44 24 ? 0F 11 44 24 ? E8", "48 8D 35 ? ? ? ? 89 C2 48 63 46")));
+    CMemory pMapRef = modules.server.FindPattern(ParseStringPattern(WIN_LINUX("48 8D 0D ? ? ? ? 45 33 C0 4C 89 74 24", "48 8D 35 ? ? ? ? 89 C2 48 63 46")));
     if (!pMapRef)
     {
         std::snprintf(error, maxlen, "CCSGameRules::sm_mapGcBanInformation not found");

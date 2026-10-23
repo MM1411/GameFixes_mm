@@ -397,7 +397,7 @@ KHook::Return<void> CRampbugFix::CCSPlayer_MovementServices_TryPlayerMove(CCSPla
     state.bOverrideTPM = false;
     state.bDidTPM = true;
 
-    const CGlobalVars* pGlobals = g_SMAPI->GetCGlobals();
+    const CGlobalVars* pGlobals = g_pEngineServer->GetServerGlobals();
     if (!pGlobals)
         return { KHook::Action::Ignore };
 
