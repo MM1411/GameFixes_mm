@@ -17,3 +17,4 @@ Protobufs: the game folder comes first on protoc's include path, for SteamDataba
 New voice_flood fix: malformed or oversized voice messages are dropped and every client is held to a per-second voice budget.
 IGameFixes001 for other plugins: steam_ban lets accounts they allow in (FUNPLAY: active admins) and holds a new account hold_seconds (15) before the kick pass; team_limit every frame on max counts and enabled spawn points; rampbug traces from the move data, forgets the surface on a teleport, TryPlayerMove override off by default.
 MSVC build fix: std::max parenthesized against the windows.h macro (the IGameFixes001 release above failed on Windows).
+CS2 1.41.9.2: built against the fixed IVEngineServer2 (new virtual at slot 65), steam_ban ban map signature for Windows, rampbug takes gpGlobals from the engine instead of Metamod.
