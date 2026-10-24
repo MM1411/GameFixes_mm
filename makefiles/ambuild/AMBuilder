@@ -16,6 +16,7 @@ for sdk_target in MMSPlugin.sdk_targets:
     os.path.join(builder.sourcePath, 'src', 'plugin.cpp'),
     os.path.join(builder.sourcePath, 'src', 'scheduler.cpp'),
     os.path.join(builder.sourcePath, 'src', 'fixes', 'fix.cpp'),
+    os.path.join(builder.sourcePath, 'src', 'fixes', 'abstract_entity.cpp'),
     os.path.join(builder.sourcePath, 'src', 'fixes', 'beam_crash.cpp'),
     os.path.join(builder.sourcePath, 'src', 'fixes', 'demo_record.cpp'),
     os.path.join(builder.sourcePath, 'src', 'fixes', 'hammer_id.cpp'),

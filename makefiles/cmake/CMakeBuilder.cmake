@@ -20,6 +20,7 @@ list(APPEND SOURCE_FILES
     src/plugin.cpp
     src/scheduler.cpp
     src/fixes/fix.cpp
+    src/fixes/abstract_entity.cpp
     src/fixes/beam_crash.cpp
     src/fixes/demo_record.cpp
     src/fixes/hammer_id.cpp

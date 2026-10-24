@@ -25,6 +25,7 @@
 
 #include "plugin.h"
 
+#include "fixes/abstract_entity.h"
 #include "fixes/beam_crash.h"
 #include "fixes/demo_record.h"
 #include "fixes/fix.h"
@@ -169,6 +170,7 @@ KHook::Return<int> Plugin::CGameEventManager_LoadEventsFromFile(IGameEventManage
 std::vector<std::unique_ptr<CFix>> Plugin::CreateFixes()
 {
     std::vector<std::unique_ptr<CFix>> fixes;
+    fixes.push_back(std::make_unique<CAbstractEntityFix>());
     fixes.push_back(std::make_unique<CBeamCrashFix>());
     fixes.push_back(std::make_unique<CDemoRecordFix>());
     fixes.push_back(std::make_unique<CHammerIdFix>());
