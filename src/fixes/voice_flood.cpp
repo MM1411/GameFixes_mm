@@ -73,7 +73,7 @@ bool CVoiceFloodFix::Load(const FixModules& modules, char* error, size_t maxlen)
 
 void CVoiceFloodFix::Unload()
 {
-    if (m_VTable.m_pVTFs)
+    if (m_VTable.m_pVTFs && m_hProcessVoiceData)
         m_hProcessVoiceData->RemoveGlobal(AsHookTarget<CServerSideClientBase>(m_VTable));
 
     delete m_hProcessVoiceData;

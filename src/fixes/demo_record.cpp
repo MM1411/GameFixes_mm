@@ -60,7 +60,7 @@ bool CDemoRecordFix::Load(const FixModules& modules, char* error, size_t maxlen)
 
 void CDemoRecordFix::Unload()
 {
-    if (m_VTable.m_pVTFs)
+    if (m_VTable.m_pVTFs && m_hDisconnect)
         m_hDisconnect->RemoveGlobal(AsHookTarget<CServerSideClientBase>(m_VTable));
 
     delete m_hDisconnect;

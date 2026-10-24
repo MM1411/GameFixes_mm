@@ -67,8 +67,10 @@ bool CServerListPlayersFix::Load(const FixModules& modules, char* error, size_t 
 
 void CServerListPlayersFix::Unload()
 {
-    m_hSteamAPIActivated->Remove(g_pSource2Server);
-    m_hSteamAPIDeactivated->Remove(g_pSource2Server);
+    if (m_hSteamAPIActivated)
+        m_hSteamAPIActivated->Remove(g_pSource2Server);
+    if (m_hSteamAPIDeactivated)
+        m_hSteamAPIDeactivated->Remove(g_pSource2Server);
 
     delete m_hSteamAPIActivated;
     delete m_hSteamAPIDeactivated;

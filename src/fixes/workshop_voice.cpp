@@ -61,7 +61,7 @@ bool CWorkshopVoiceFix::Load(const FixModules& modules, char* error, size_t maxl
 
 void CWorkshopVoiceFix::Unload()
 {
-    if (m_VTable.m_pVTFs)
+    if (m_VTable.m_pVTFs && m_hSendNetMessage)
         m_hSendNetMessage->RemoveGlobal(AsHookTarget<CServerSideClientBase>(m_VTable));
 
     delete m_hSendNetMessage;
