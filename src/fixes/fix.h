@@ -57,6 +57,8 @@ public:
     // the plugin logs it, calls Unload() and leaves just this fix off, the
     // others still load. KHook hooks only come down in their destructor, so
     // a fix owns them through plain pointers and deletes them in Unload().
+    // Unload() also runs, without Load(), for a fix disabled in the ini, so it
+    // must cope with whatever Load() left unset.
     virtual bool Load(const FixModules& modules, char* error, size_t maxlen) = 0;
     virtual void Unload() {}
 

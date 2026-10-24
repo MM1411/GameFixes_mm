@@ -45,6 +45,11 @@ bool CDemoRecordFix::Load(const FixModules& modules, char* error, size_t maxlen)
     m_tvEnable = std::make_unique<CConVarRef<bool>>("tv_enable");
 
     CMemory pVTable = modules.engine.GetVirtualTableByName("CServerSideClient");
+    if (!pVTable)
+    {
+        std::snprintf(error, maxlen, "CServerSideClient vtable not found");
+        return false;
+    }
 
     m_VTable.m_pVTFs = pVTable.RCast<void**>();
     m_hDisconnect->AddGlobal(AsHookTarget<CServerSideClientBase>(m_VTable));

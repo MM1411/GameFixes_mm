@@ -87,6 +87,14 @@ bool Plugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool l
     CModule libengine(g_pEngineServer);
     const FixModules modules{libserver, libengine};
 
+    // Resolved before anything is installed: AddGlobal on a null vtable would crash.
+    m_GameEventManagerVTable.m_pVTFs = libserver.GetVirtualTableByName("CGameEventManager").RCast<void**>();
+    if (!m_GameEventManagerVTable.m_pVTFs)
+    {
+        std::snprintf(error, maxlen, "CGameEventManager vtable not found");
+        return false;
+    }
+
     if (!LoadFixes(modules, error, maxlen))
         return false;
 
@@ -95,7 +103,6 @@ bool Plugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool l
     m_hGameFrame->Add(g_pSource2Server);
     m_hStartupServer->Add(g_pNetworkServerService);
 
-    m_GameEventManagerVTable.m_pVTFs = libserver.GetVirtualTableByName("CGameEventManager").RCast<void**>();
     m_hLoadEventsFromFile->AddGlobal(AsHookTarget<IGameEventManager2>(m_GameEventManagerVTable));
 
     g_SMAPI->AddListener(this, this);
@@ -105,9 +112,12 @@ bool Plugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool l
 
 bool Plugin::Unload(char* error, size_t maxlen)
 {
-    m_hGameFrame->Remove(g_pSource2Server);
-    m_hStartupServer->Remove(g_pNetworkServerService);
-    if (m_GameEventManagerVTable.m_pVTFs)
+    // Metamod unloads a plugin whose Load failed too, and a second Unload finds the hooks already deleted.
+    if (m_hGameFrame)
+        m_hGameFrame->Remove(g_pSource2Server);
+    if (m_hStartupServer)
+        m_hStartupServer->Remove(g_pNetworkServerService);
+    if (m_GameEventManagerVTable.m_pVTFs && m_hLoadEventsFromFile)
         m_hLoadEventsFromFile->RemoveGlobal(AsHookTarget<IGameEventManager2>(m_GameEventManagerVTable));
 
     delete m_hGameFrame;
@@ -208,6 +218,8 @@ bool Plugin::LoadFixes(const FixModules& modules, char* error, size_t maxlen)
         if (!pBlock || !pBlock->GetBool("enable"))
         {
             META_LOG(this, "%s: disabled\n", fix->GetName());
+            // Its KHook objects were made in the constructor and only Unload deletes them.
+            fix->Unload();
             continue;
         }
 

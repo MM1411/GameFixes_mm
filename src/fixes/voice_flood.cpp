@@ -30,6 +30,7 @@
 #include <dynlibutils/module.hpp>
 
 #include <algorithm>
+#include <cstdio>
 #include <limits>
 
 using namespace DynLibUtils;
@@ -57,6 +58,11 @@ bool CVoiceFloodFix::Load(const FixModules& modules, char* error, size_t maxlen)
 {
     // An engine class with no interface to fetch and no instance at load time; the vtable is resolved by name and the hook covers every client sharing it.
     CMemory pVTable = modules.engine.GetVirtualTableByName("CServerSideClient");
+    if (!pVTable)
+    {
+        std::snprintf(error, maxlen, "CServerSideClient vtable not found");
+        return false;
+    }
 
     m_VTable.m_pVTFs = pVTable.RCast<void**>();
     m_hProcessVoiceData->AddGlobal(AsHookTarget<CServerSideClientBase>(m_VTable));
