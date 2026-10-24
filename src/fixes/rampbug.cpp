@@ -68,7 +68,7 @@ namespace
             m_bShouldIgnoreDisabledPairs = true;
             m_bIgnoreIfBothInteractWithHitboxes = false;
             m_bForceHitEverything = false;
-            m_bUnknown = true;
+            m_unk101 = true;
         }
     };
 
