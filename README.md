@@ -108,5 +108,5 @@ The package lands in `build/package/cs2/`; add `configs/addons/game_fixes/game_f
 
 ## Author
 
-Slynx (˙·٠● S l y n x ●٠·˙)
+Slynx (˙·٠● S l y n x ●٠·˙)
 [https://slynxdev.cz](https://slynxdev.cz)

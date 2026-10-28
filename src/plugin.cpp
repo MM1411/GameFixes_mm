@@ -2,7 +2,7 @@
  * vim: set ts=4 sw=4 tw=99 noet:
  * =============================================================================
  * GameFixes_mm
- * Copyright (C) 2026 Michal "Slynx (˙·٠● S l y n x ●٠·˙)" Přikryl.
+ * Copyright (C) 2026 Michal "Slynx (˙·٠● S l y n x ●٠·˙)" Přikryl.
  * =============================================================================
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -18,7 +18,7 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   - Michal "Slynx (˙·٠● S l y n x ●٠·˙)" Přikryl
+ *   - Michal "Slynx (˙·٠● S l y n x ●٠·˙)" Přikryl
  *
  * Project: GameFixes_mm
  */
@@ -285,7 +285,7 @@ const char* Plugin::GetLicense() { return "GPLv3"; }
 const char* Plugin::GetVersion() { return VERSION_STRING; }
 const char* Plugin::GetDate() { return BUILD_TIMESTAMP; }
 const char* Plugin::GetLogTag() { return "GameFixes"; }
-const char* Plugin::GetAuthor() { return reinterpret_cast<const char*>(u8"Slynx (˙·٠● S l y n x ●٠·˙)"); }
+const char* Plugin::GetAuthor() { return reinterpret_cast<const char*>(u8"Slynx (˙·٠● S l y n x ●٠·˙)"); }
 const char* Plugin::GetDescription() { return "CS2 server fixes, each toggled in game_fixes.ini"; }
 const char* Plugin::GetName() { return "Game Fixes"; }
 const char* Plugin::GetURL() { return "https://slynxdev.cz"; }
