@@ -26,7 +26,7 @@
 #include "server_list_players.h"
 
 #include "scheduler.h"
-#include "sdk/schema/CBasePlayerController.h"
+#include "sdk/schema/classes/CBasePlayerController.h"
 #include "utils.hpp"
 #include "vprof.hpp"
 

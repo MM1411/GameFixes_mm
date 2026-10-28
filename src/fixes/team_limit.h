@@ -34,7 +34,7 @@
 #pragma once
 
 #include "fix.h"
-#include "sdk/schema/CCSGameRules.h"
+#include "sdk/schema/classes/CCSGameRules.h"
 
 class CTeamLimitFix final : public CFix
 {

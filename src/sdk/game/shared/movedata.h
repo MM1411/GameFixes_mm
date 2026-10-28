@@ -31,8 +31,8 @@
 //
 //=============================================================================
 
-#ifndef CMOVEDATA_H
-#define CMOVEDATA_H
+#ifndef MOVEDATA_H
+#define MOVEDATA_H
 #ifdef _WIN32
 #pragma once
 #endif
@@ -101,4 +101,4 @@ public:
     float m_flMaxSpeed;
 };
 
-#endif // CMOVEDATA_H
+#endif // MOVEDATA_H

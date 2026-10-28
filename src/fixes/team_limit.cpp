@@ -25,7 +25,7 @@
 
 #include "team_limit.h"
 
-#include "sdk/schema/CCSGameRulesProxy.h"
+#include "sdk/schema/classes/CCSGameRulesProxy.h"
 
 #include "vprof.hpp"
 

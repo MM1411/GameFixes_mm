@@ -41,7 +41,7 @@
 
 #include "fix.h"
 #include "plugin.h"
-#include "sdk/CMoveData.h"
+#include "sdk/game/shared/movedata.h"
 #include "utils.hpp"
 
 #include <gametrace.h>

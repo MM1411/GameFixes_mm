@@ -25,7 +25,7 @@
 
 #include "sv_cheats.h"
 
-#include "sdk/schema/CBasePlayerController.h"
+#include "sdk/schema/classes/CBasePlayerController.h"
 #include "vprof.hpp"
 
 #include <engine2/isource2server.h>

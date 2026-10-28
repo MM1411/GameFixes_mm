@@ -23,8 +23,8 @@
  * Project: GameFixes_mm
  */
 
-#ifndef INAVPHYSICSINTERFACE_H
-#define INAVPHYSICSINTERFACE_H
+#ifndef NAVPHYSICSINTERFACE_H
+#define NAVPHYSICSINTERFACE_H
 #ifdef _WIN32
 #pragma once
 #endif
@@ -53,4 +53,4 @@ public:
 	virtual void Unk(void*) = 0;
 };
 
-#endif // INAVPHYSICSINTERFACE_H
+#endif // NAVPHYSICSINTERFACE_H

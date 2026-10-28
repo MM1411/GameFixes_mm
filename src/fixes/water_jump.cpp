@@ -25,8 +25,8 @@
 
 #include "water_jump.h"
 
-#include "sdk/schema/CBasePlayerPawn.h"
-#include "sdk/schema/CCSPlayer_MovementServices.h"
+#include "sdk/schema/classes/CBasePlayerPawn.h"
+#include "sdk/schema/classes/CCSPlayer_MovementServices.h"
 #include "vprof.hpp"
 
 #include <dynlibutils/module.hpp>

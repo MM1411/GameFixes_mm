@@ -33,7 +33,7 @@
 
 #include "fix.h"
 #include "plugin.h"
-#include "sdk/netmessages.h"
+#include "sdk/game/shared/netmessages.h"
 #include "utils.hpp"
 
 #include <const.h>

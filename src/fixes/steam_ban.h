@@ -41,7 +41,7 @@
 
 #include "fix.h"
 #include "plugin.h"
-#include "sdk/CGcBanInformation.h"
+#include "sdk/game/server/gcbaninformation.h"
 #include "utils.hpp"
 
 #include <tier0/utlmap.h>
