@@ -23,7 +23,7 @@
  * Project: GameFixes_mm
  */
 
-#include "sdk/schemasystem_helper.h"
+#include "schemasystem_helper.h"
 
 #include "utils.hpp"
 

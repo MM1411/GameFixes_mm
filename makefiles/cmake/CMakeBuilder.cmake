@@ -34,7 +34,7 @@ list(APPEND SOURCE_FILES
     src/fixes/team_limit.cpp
     src/fixes/workshop_voice.cpp
     src/fixes/voice_flood.cpp
-    src/impl/sdk/schemasystem_helper.cpp
+    src/sdk/schemasystem_helper.cpp
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
