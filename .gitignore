@@ -9,5 +9,3 @@ generated/
 output/
 dockerbuild/
 .idea/
-
-configs/addons/metamod/*.vdf

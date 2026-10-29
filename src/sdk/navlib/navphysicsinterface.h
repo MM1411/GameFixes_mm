@@ -35,7 +35,6 @@
 
 
 #include <gametrace.h>
-#include <ray.h>
 
 class CBaseEntity;
 

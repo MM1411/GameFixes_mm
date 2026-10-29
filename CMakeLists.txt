@@ -1,59 +1,60 @@
 cmake_minimum_required(VERSION 3.18)
-project(game_fixes C CXX ASM)
 
+if (POLICY CMP0092)
+    cmake_policy(SET CMP0092 NEW) # No default /W3 on MSVC.
+endif ()
+
+project(game_fixes C CXX)
+
+# Every target here, the SDK and vendor libraries included, against the static
+# MSVC runtime the game links with.
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-if(NOT DEFINED ENV{MMSOURCE_DEV})
-    message(FATAL_ERROR "Environment variable MMSOURCE_DEV is not set!")
-endif()
+# Where the dependencies live: a -D cache variable, else the environment, else
+# the external/ submodules.
+#   SOURCESDK_DIR  Wend4r/sourcesdk (main), cloned recursively
+#   METAMOD_DIR    alliedmodders/metamod-source at build 1411 (7ec0f16), the
+#                  last one before KHook -- only its core/ headers are used
+function(resolve_dependency_dir VAR_NAME ENV_NAMES DEFAULT_DIR)
+    if (NOT ${VAR_NAME})
+        foreach (ENV_NAME ${ENV_NAMES})
+            if (DEFINED ENV{${ENV_NAME}} AND NOT "$ENV{${ENV_NAME}}" STREQUAL "")
+                set(${VAR_NAME} "$ENV{${ENV_NAME}}")
+                break()
+            endif ()
+        endforeach ()
+    endif ()
+    if (NOT ${VAR_NAME})
+        set(${VAR_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/${DEFAULT_DIR}")
+    endif ()
+    file(TO_CMAKE_PATH "${${VAR_NAME}}" ${VAR_NAME})
+    if (NOT EXISTS "${${VAR_NAME}}")
+        message(FATAL_ERROR "${VAR_NAME} not found: \"${${VAR_NAME}}\" (pass -D${VAR_NAME}=..., set ${ENV_NAMES} or check out the submodule)")
+    endif ()
+    set(${VAR_NAME} "${${VAR_NAME}}" PARENT_SCOPE)
+endfunction()
 
-# s2sdk (alliedmodders/s2sdk, formerly hl2sdk's cs2 branch): the first of
-# these variables that is set wins.
-foreach(var S2SDK_CS2 S2SDKCS2 S2SDK HL2SDK_CS2 HL2SDKCS2)
-    if(DEFINED ENV{${var}} AND NOT "$ENV{${var}}" STREQUAL "")
-        file(TO_CMAKE_PATH "$ENV{${var}}" SOURCESDK_DIR)
-        break()
-    endif()
-endforeach()
-if(NOT SOURCESDK_DIR)
-    message(FATAL_ERROR "s2sdk not found: set S2SDK (or HL2SDKCS2) to your checkout!")
-endif()
-
-set(METAMOD_DIR $ENV{MMSOURCE_DEV})
+resolve_dependency_dir(SOURCESDK_DIR "SOURCESDK_DIR;HL2SDKCS2" "sourcesdk")
+resolve_dependency_dir(METAMOD_DIR "METAMOD_DIR;MMSOURCE_DEV" "metamod-source")
 
 include(makefiles/cmake/shared.cmake)
-# s2sdk-manifests: s2sdk::s2sdk (s2sdk's include paths, defines and libraries)
-# and s2sdk_protobufs(). S2SDK_MANIFESTS_DIR as a cache or environment variable,
-# else fetched.
-if (NOT S2SDK_MANIFESTS_DIR AND DEFINED ENV{S2SDK_MANIFESTS_DIR})
-    file(TO_CMAKE_PATH "$ENV{S2SDK_MANIFESTS_DIR}" S2SDK_MANIFESTS_DIR)
-endif ()
-if (NOT S2SDK_MANIFESTS_DIR OR NOT EXISTS "${S2SDK_MANIFESTS_DIR}/s2sdk-manifests.cmake")
-    include(FetchContent)
-    FetchContent_Declare(s2sdk_manifests
-            GIT_REPOSITORY https://github.com/Source2Mod/s2sdk-manifests.git
-            GIT_TAG master
-            GIT_SHALLOW TRUE
-    )
-    FetchContent_MakeAvailable(s2sdk_manifests)
-    set(S2SDK_MANIFESTS_DIR "${s2sdk_manifests_SOURCE_DIR}")
-endif ()
-include("${S2SDK_MANIFESTS_DIR}/s2sdk-manifests.cmake")
-s2sdk_manifest(cs2 "${SOURCESDK_DIR}")
+include(makefiles/cmake/sourcesdk.cmake)
+include(makefiles/cmake/metamod.cmake)
 
+# This plugin's own private SourceHook (vector and inline hooks), not
+# metamod's shared one -- see src/plugin.h. Its own test suite stays out.
+set(SOURCEHOOK_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+add_subdirectory(vendor/sourcehook)
 add_subdirectory(vendor/dynlibutils)
 
 if (LINUX)
-    include(${CMAKE_SOURCE_DIR}/makefiles/cmake/linux.cmake)
+    include(makefiles/cmake/linux.cmake)
 elseif (WIN32)
-    include(${CMAKE_SOURCE_DIR}/makefiles/cmake/windows.cmake)
-endif()
+    include(makefiles/cmake/windows.cmake)
+endif ()
 
-# The metamod .vdf from makefiles/metamod/ (metamod.ambuild on the AMBuild side).
-include(${CMAKE_SOURCE_DIR}/makefiles/cmake/metamod.cmake)
+# The plugin binary.
+include(makefiles/cmake/CMakeBuilder.cmake)
 
-# The plugin binary (makefiles/ambuild/AMBuilder on the AMBuild side).
-include(${CMAKE_SOURCE_DIR}/makefiles/cmake/CMakeBuilder.cmake)
-
-# Install layout (makefiles/ambuild/package.ambuild on the AMBuild side).
-include(${CMAKE_SOURCE_DIR}/makefiles/cmake/package.cmake)
+# Install layout: addons/plugins/ and addons/configs/.
+include(makefiles/cmake/package.cmake)

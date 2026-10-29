@@ -1,14 +1,23 @@
-# The plugin's metamod .vdf -- CMake twin of makefiles/ambuild/metamod.ambuild.
-# Both fill in the same makefiles/metamod/<name>.vdf.in; this writes it to
-# configs/addons/metamod/, which package.cmake copies into the build tree.
+# Metamod:Source build 1411 (alliedmodders/metamod-source 7ec0f16, the last one
+# before KHook replaced SourceHook): only core/'s plugin API headers.
+#
+# NOT core/sourcehook: the plugin brings its own private SourceHook
+# (vendor/sourcehook), whose include/sourcehook.h shim is what ISmmPlugin.h's
+# bare #include "sourcehook.h" resolves to.
 
-if (WIN32)
-    set(PROJECT_VDF_PLATFORM "win64")
-else()
-    set(PROJECT_VDF_PLATFORM "linuxsteamrt64")
-endif()
+if (NOT EXISTS "${METAMOD_DIR}/core/ISmmPlugin.h")
+    message(FATAL_ERROR "METAMOD_DIR has no core/ISmmPlugin.h: \"${METAMOD_DIR}\"")
+endif ()
 
-configure_file(
-    ${CMAKE_CURRENT_LIST_DIR}/../metamod/game_fixes.vdf.in
-    ${PROJECT_SOURCE_DIR}/configs/addons/metamod/game_fixes.vdf
+if (EXISTS "${METAMOD_DIR}/third_party/khook")
+    message(WARNING "METAMOD_DIR looks like a Metamod:Source with KHook (newer than build 1411); "
+                    "a plugin built against it will not load on 1411.")
+endif ()
+
+set(METAMOD_COMPILE_DEFINITIONS
+    META_IS_SOURCE2
+)
+
+set(METAMOD_INCLUDE_DIRS
+    ${METAMOD_DIR}/core
 )

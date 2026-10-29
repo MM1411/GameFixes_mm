@@ -39,8 +39,6 @@ struct Timer;
 class CServerListPlayersFix final : public CFix
 {
 public:
-    CServerListPlayersFix();
-
     const char* GetName() const override { return "server_list_players"; }
 
     void ReadConfig(KeyValues* pConfig) override;
@@ -48,11 +46,8 @@ public:
     void Unload() override;
 
 public: // Hooks
-    KHook::Return<void> CSource2Server_GameServerSteamAPIActivated(ISource2Server* pThis);
-    KHook::Return<void> CSource2Server_GameServerSteamAPIDeactivated(ISource2Server* pThis);
-
-    KHook::Virtual<ISource2Server, void>* m_hSteamAPIActivated = nullptr;
-    KHook::Virtual<ISource2Server, void>* m_hSteamAPIDeactivated = nullptr;
+    void CSource2Server_GameServerSteamAPIActivated();
+    void CSource2Server_GameServerSteamAPIDeactivated();
 
 private:
     void UpdatePlayers();

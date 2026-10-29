@@ -35,7 +35,7 @@
 #include "utils.hpp"
 
 #include <dynlibutils/virtual.hpp>
-#include <engine2/serversideclientbase.h>
+#include <serversideclientbase.h>
 #include <tier0/convar.h>
 
 #include <memory>
@@ -43,8 +43,6 @@
 class CDemoRecordFix final : public CFix
 {
 public:
-    CDemoRecordFix();
-
     const char* GetName() const override { return "demo_record"; }
 
     bool Load(const FixModules& modules, char* error, size_t maxlen) override;
@@ -53,15 +51,13 @@ public:
     void OnStartupServer(const GameSessionConfiguration_t& config, const char* pszMapName) override;
 
 public: // Hooks
-    KHook::Return<void> CServerSideClient_Disconnect(CServerSideClientBase* pThis, ENetworkDisconnectionReason reason, const char* pszInternalReason);
-
-    KHook::Virtual<CServerSideClientBase, void, ENetworkDisconnectionReason, const char*>* m_hDisconnect = nullptr;
+    void CServerSideClient_Disconnect(ENetworkDisconnectionReason reason, const char* pszInternalReason);
 
 private:
     bool IsTvEnabled() const;
 
-    // CServerSideClient's vtable (from libengine2); doubles as the hook's
-    // stand-in object, see AsHookTarget().
+    // CServerSideClient's vtable (from libengine2), what the hook is added on,
+    // see AsHookTarget().
     DynLibUtils::VirtualTable m_VTable;
 
     // tv_enable; both the disconnect block and the extra slot are no-ops

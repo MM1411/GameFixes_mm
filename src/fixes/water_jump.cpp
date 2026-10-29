@@ -36,11 +36,9 @@
 
 using namespace DynLibUtils;
 
-CWaterJumpFix::CWaterJumpFix() :
-    KHOOK_NEW(m_hWaterMove, this, &CWaterJumpFix::CCSPlayer_MovementServices_WaterMove, nullptr),
-    KHOOK_NEW(m_hCategorizePosition, this, &CWaterJumpFix::CCSPlayer_MovementServices_CategorizePosition, nullptr)
-{
-}
+SH_DECL_INLINEHOOK1(CCSPlayer_MovementServices_WaterMove, CCSPlayer_MovementServices, void, CMoveData*);
+// The same function rampbug hooks: one detour, shared by both.
+SH_DECL_INLINEHOOK2(CCSPlayer_MovementServices_CategorizePosition, CCSPlayer_MovementServices, void, CMoveData*, bool);
 
 bool CWaterJumpFix::Load(const FixModules& modules, char* error, size_t maxlen)
 {
@@ -62,8 +60,12 @@ bool CWaterJumpFix::Load(const FixModules& modules, char* error, size_t maxlen)
         return false;
     }
 
-    m_hWaterMove->Configure(pWaterMove.GetPtr());
-    m_hCategorizePosition->Configure(pCategorizePosition.GetPtr());
+    if (!KeepHook(SH_ADD_INLINEHOOK(CCSPlayer_MovementServices_WaterMove, pWaterMove.GetPtr(), SH_MEMBER(this, &CWaterJumpFix::CCSPlayer_MovementServices_WaterMove), false)) ||
+        !KeepHook(SH_ADD_INLINEHOOK(CCSPlayer_MovementServices_CategorizePosition, pCategorizePosition.GetPtr(), SH_MEMBER(this, &CWaterJumpFix::CCSPlayer_MovementServices_CategorizePosition), false)))
+    {
+        std::snprintf(error, maxlen, "failed to hook WaterMove / CategorizePosition");
+        return false;
+    }
 
     Log("hooked WaterMove (%p) and CategorizePosition (%p)", pWaterMove.GetPtr(), pCategorizePosition.GetPtr());
     return true;
@@ -71,10 +73,7 @@ bool CWaterJumpFix::Load(const FixModules& modules, char* error, size_t maxlen)
 
 void CWaterJumpFix::Unload()
 {
-    delete m_hWaterMove;
-    delete m_hCategorizePosition;
-    m_hWaterMove = nullptr;
-    m_hCategorizePosition = nullptr;
+    RemoveHooks();
 }
 
 void CWaterJumpFix::OnStartupServer(const GameSessionConfiguration_t& config, const char* pszMapName)
@@ -94,25 +93,29 @@ int CWaterJumpFix::GetSlot(CCSPlayer_MovementServices* pServices)
     return (nSlot >= 0 && nSlot < 64) ? nSlot : -1;
 }
 
-KHook::Return<void> CWaterJumpFix::CCSPlayer_MovementServices_WaterMove(CCSPlayer_MovementServices* pThis, CMoveData* pMove)
+void CWaterJumpFix::CCSPlayer_MovementServices_WaterMove(CMoveData* pMove)
 {
     GF_VPROF("GameFixes::water_jump::WaterMove");
+
+    CCSPlayer_MovementServices* pThis = SH_IFACEPTR(CCSPlayer_MovementServices);
 
     const int nSlot = GetSlot(pThis);
     if (nSlot >= 0)
         m_bSkipNextCategorize[nSlot] = true;
 
-    return { KHook::Action::Ignore };
+    RETURN_SH(MRES_IGNORED);
 }
 
-KHook::Return<void> CWaterJumpFix::CCSPlayer_MovementServices_CategorizePosition(CCSPlayer_MovementServices* pThis, CMoveData* pMove, bool bStayOnGround)
+void CWaterJumpFix::CCSPlayer_MovementServices_CategorizePosition(CMoveData* pMove, bool bStayOnGround)
 {
     GF_VPROF("GameFixes::water_jump::CategorizePosition");
 
+    CCSPlayer_MovementServices* pThis = SH_IFACEPTR(CCSPlayer_MovementServices);
+
     const int nSlot = GetSlot(pThis);
     if (nSlot < 0 || !m_bSkipNextCategorize[nSlot])
-        return { KHook::Action::Ignore };
+        RETURN_SH(MRES_IGNORED);
 
     m_bSkipNextCategorize[nSlot] = false;
-    return { KHook::Action::Supersede };
+    RETURN_SH(MRES_SUPERCEDE);
 }

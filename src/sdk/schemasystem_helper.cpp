@@ -29,8 +29,8 @@
 
 #include <dynlibutils/module.hpp>
 #include <entity2/entityclass.h>
+#include <entity2/entitynetwork.h>
 #include <entity2/entitysystem.h>
-#include <gameentitysystem.h>
 #include <networksystem/inetworkserializer.h>
 #include <schemasystem/schemasystem.h>
 
@@ -54,11 +54,11 @@ static SchemaClassInfoData_t* FindServerClass(const char* pszClassName)
 static SchemaClassFieldData_t* FindField(SchemaClassInfoData_t* pClassInfo, const char* pszFieldName,
                                          SchemaClassInfoData_t** ppDeclaring = nullptr)
 {
-    for (; pClassInfo; pClassInfo = pClassInfo->m_nNumBaseClasses ? pClassInfo->m_pBaseClasses[0].m_pClass : nullptr)
+    for (; pClassInfo; pClassInfo = pClassInfo->m_nBaseClassCount ? static_cast<SchemaClassInfoData_t*>(pClassInfo->m_pBaseClasses[0].m_pClass) : nullptr)
     {
-        for (uint16 i = 0; i < pClassInfo->m_nNumFields; ++i)
+        for (uint16 i = 0; i < pClassInfo->m_nFieldCount; ++i)
         {
-            if (std::strcmp(pClassInfo->m_pFields[i].m_pName, pszFieldName) == 0)
+            if (std::strcmp(pClassInfo->m_pFields[i].m_pszName, pszFieldName) == 0)
             {
                 if (ppDeclaring)
                     *ppDeclaring = pClassInfo;
@@ -79,10 +79,10 @@ static CNetworkSerializerCodeGenDatabase* GetSerializerDatabase()
         return nullptr;
 
     CEntityClass* pClass = GameEntitySystem()->FindClassByName("CBaseEntity");
-    if (!pClass || !pClass->m_NetworkSerializerInfo)
+    if (!pClass || !pClass->m_pNetworkSerializerInfo)
         return nullptr;
 
-    return pClass->m_NetworkSerializerInfo->m_pDatabase;
+    return pClass->m_pNetworkSerializerInfo->m_pDatabase;
 }
 
 int32_t schema::GetOffset(const char* pszClassName, const char* pszFieldName)
@@ -133,7 +133,7 @@ schema::NetworkInfo_t schema::GetNetworkInfo(const char* pszClassName, const cha
     SchemaClassInfoData_t* pDeclaring = nullptr;
     FindField(FindServerClass(pszClassName), pszFieldName, &pDeclaring);
 
-    int index = pDatabase->m_ClassInfos.Find(pDeclaring->m_pName);
+    int index = pDatabase->m_ClassInfos.Find(pDeclaring->m_pszName);
     info.networked = index != pDatabase->m_ClassInfos.InvalidIndex()
                      && pDatabase->m_ClassInfos[index]->FindField(pszFieldName) != nullptr;
     info.chainOffset = GetChainOffset(pszClassName);
@@ -143,15 +143,19 @@ schema::NetworkInfo_t schema::GetNetworkInfo(const char* pszClassName, const cha
 
 void schema::EntityNetworkStateChanged(CEntityInstance* pEntity, int32_t nOffset)
 {
-    pEntity->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(nOffset)));
+    pEntity->NetworkStateChanged(NetworkStateChanged_t(static_cast<uint32>(nOffset)));
 }
 
 void schema::ChainNetworkStateChanged(void* pNetworkVarChainer, int32_t nOffset)
 {
-    // s2sdk's chainer passes it on to its entity with its own path index, and drops it
+    // The chainer passes it on to its entity with its own path index, and drops it
     // while the entity is still being constructed
-    NetworkStateChangedData data(static_cast<uint32>(nOffset));
-    static_cast<CNetworkVarChainer*>(pNetworkVarChainer)->NetworkStateChanged(data);
+    auto* pChainer = static_cast<CNetworkVarChainer*>(pNetworkVarChainer);
+    CEntityInstance* pEntity = pChainer->GetObject();
+    if (!pEntity || (pEntity->m_pEntity->m_flags & EF_IS_CONSTRUCTION_IN_PROGRESS) != 0)
+        return;
+
+    pEntity->NetworkStateChanged(NetworkStateChanged_t(static_cast<uint32>(nOffset), -1, pChainer->m_PathIndex));
 }
 
 // Whether p points into the .text section of the module pModuleAddress lives in.
@@ -171,7 +175,7 @@ static bool IsInModuleText(const void* p, const void* pModuleAddress)
 }
 
 // The NetworkVar wrapper's NetworkStateChanged starts by checking
-// NetworkStateChangedData::m_nPathIndex against -1: `cmp dword ptr [reg+0x38], -1`,
+// NetworkStateChanged_t::m_nPathIndex against -1: `cmp dword ptr [reg+0x38], -1`,
 // 83 /7 with a disp8 of 0x38 and an imm8 of -1, whatever register holds the data,
 // within its first 16 bytes. No other slot of these vtables does that (checked on all
 // NetworkVar_ vtables, 2026-09-23 binaries); s2binlib's find_networkvar_vtable_statechanged
@@ -217,8 +221,8 @@ void schema::EmbeddedNetworkStateChanged(void* pObject, int32_t nOffset)
     if (it->second < 0)
         return; // not embedded in a NetworkVar, nothing to replicate
 
-    using NetworkStateChangedFn = void (*)(void*, NetworkStateChangedData*);
+    using NetworkStateChangedFn = void (*)(void*, NetworkStateChanged_t*);
 
-    NetworkStateChangedData data(static_cast<uint32>(nOffset));
+    NetworkStateChanged_t data(static_cast<uint32>(nOffset));
     reinterpret_cast<NetworkStateChangedFn>(pVtable[it->second])(pObject, &data);
 }

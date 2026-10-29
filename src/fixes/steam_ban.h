@@ -54,8 +54,6 @@
 class CSteamBanFix final : public CFix
 {
 public:
-    CSteamBanFix();
-
     const char* GetName() const override { return "steam_ban"; }
 
     void ReadConfig(KeyValues* pConfig) override;
@@ -67,11 +65,8 @@ public:
     bool DisallowAccount(uint64_t steamId64);
 
 public: // Hooks
-    KHook::Return<void> GameSystem_Think_CheckSteamBan();
-    KHook::Return<void> GameSystem_Think_CheckSteamBanPost();
-
-    // void GameSystem_Think_CheckSteamBan(), found by signature.
-    KHook::Function<void>* m_hCheckSteamBan = nullptr;
+    void GameSystem_Think_CheckSteamBan();
+    void GameSystem_Think_CheckSteamBanPost();
 
 private:
     // Steam32 account ids ("whitelist", given as SteamID64s) the pass must

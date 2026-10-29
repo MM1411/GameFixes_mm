@@ -34,7 +34,6 @@
 
 #include <cstddef>
 #include <cstring>
-#include <type_traits>
 
 #ifdef _WIN32
 #define WIN_LINUX(win, linux) win
@@ -65,20 +64,12 @@ inline void WriteCode(DynLibUtils::CMemory addr, const void* pBytes, std::size_t
 #endif
 }
 
-// KHook's Virtual::AddGlobal / RemoveGlobal want an object to read the vtable
-// off of, and only ever look at its first pointer. DynLibUtils::VirtualTable
-// is exactly that -- one pointer, the vtable -- so it doubles as the stand-in
-// when there is no real instance to hand over (engine classes resolved by
-// RTTI name): the hook then covers every object sharing that vtable.
+// SH_ADD_DVPHOOK takes the vtable itself, not an object pointing at one
+// (SourceHook's Hook_DVP reads the slot straight off it): the hook then covers
+// every object sharing that vtable. Engine classes with no instance at load
+// time are resolved by RTTI name into a DynLibUtils::VirtualTable.
 template<typename T>
-inline T* AsHookTarget(DynLibUtils::VirtualTable& vtable)
+inline T* AsHookTarget(const DynLibUtils::VirtualTable& vtable)
 {
-    return reinterpret_cast<T*>(&vtable);
+    return reinterpret_cast<T*>(vtable.m_pVTFs);
 }
-
-// Mem-initializer for a hook held through a plain pointer: the hook's type is
-// already spelled out on the member's declaration, so it is taken from there
-// instead of being repeated -- or deduced, which MSVC fails at for KHook's
-// manual-index and some member-function-pointer constructors.
-//   CFoo::CFoo() : KHOOK_NEW(m_hThink, 52u, this, &CFoo::Pre, &CFoo::Post) {}
-#define KHOOK_NEW(member, ...) member(new std::remove_pointer_t<decltype(member)>(__VA_ARGS__))

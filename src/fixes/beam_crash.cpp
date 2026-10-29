@@ -34,11 +34,8 @@
 
 using namespace DynLibUtils;
 
-CBeamCrashFix::CBeamCrashFix() :
-    KHOOK_NEW(m_hSetBeamOrigin, this, &CBeamCrashFix::CBeam_SetBeamOrigin, &CBeamCrashFix::CBeam_SetBeamOriginPost),
-    KHOOK_NEW(m_hSetBeamEndPos, this, &CBeamCrashFix::CBeam_SetBeamEndPos, &CBeamCrashFix::CBeam_SetBeamEndPosPost)
-{
-}
+SH_DECL_INLINEHOOK1(CBeam_SetBeamOrigin, CBeam, void, const Vector*);
+SH_DECL_INLINEHOOK1(CBeam_SetBeamEndPos, CBeam, void, const Vector*);
 
 bool CBeamCrashFix::Load(const FixModules& modules, char* error, size_t maxlen)
 {
@@ -60,8 +57,14 @@ bool CBeamCrashFix::Load(const FixModules& modules, char* error, size_t maxlen)
         return false;
     }
 
-    m_hSetBeamOrigin->Configure(pSetBeamOrigin.GetPtr());
-    m_hSetBeamEndPos->Configure(pSetBeamEndPos.GetPtr());
+    if (!KeepHook(SH_ADD_INLINEHOOK(CBeam_SetBeamOrigin, pSetBeamOrigin.GetPtr(), SH_MEMBER(this, &CBeamCrashFix::CBeam_SetBeamOrigin), false)) ||
+        !KeepHook(SH_ADD_INLINEHOOK(CBeam_SetBeamOrigin, pSetBeamOrigin.GetPtr(), SH_MEMBER(this, &CBeamCrashFix::CBeam_SetBeamOriginPost), true)) ||
+        !KeepHook(SH_ADD_INLINEHOOK(CBeam_SetBeamEndPos, pSetBeamEndPos.GetPtr(), SH_MEMBER(this, &CBeamCrashFix::CBeam_SetBeamEndPos), false)) ||
+        !KeepHook(SH_ADD_INLINEHOOK(CBeam_SetBeamEndPos, pSetBeamEndPos.GetPtr(), SH_MEMBER(this, &CBeamCrashFix::CBeam_SetBeamEndPosPost), true)))
+    {
+        std::snprintf(error, maxlen, "failed to hook CBeam::SetBeamOrigin / SetBeamEndPos");
+        return false;
+    }
 
     Log("hooked CBeam::SetBeamOrigin (%p) and CBeam::SetBeamEndPos (%p)", pSetBeamOrigin.GetPtr(), pSetBeamEndPos.GetPtr());
     return true;
@@ -69,48 +72,53 @@ bool CBeamCrashFix::Load(const FixModules& modules, char* error, size_t maxlen)
 
 void CBeamCrashFix::Unload()
 {
-    delete m_hSetBeamOrigin;
-    delete m_hSetBeamEndPos;
-    m_hSetBeamOrigin = nullptr;
-    m_hSetBeamEndPos = nullptr;
+    RemoveHooks();
 }
 
-KHook::Return<void> CBeamCrashFix::CBeam_SetBeamOrigin(CBeam* pThis, const Vector* pVecPosition)
+void CBeamCrashFix::CBeam_SetBeamOrigin(const Vector* pVecPosition)
 {
     GF_VPROF("GameFixes::beam_crash::SetBeamOrigin");
 
+    CBeam* pThis = SH_IFACEPTR(CBeam);
+
     // Game code still works for parented beams; without a parent it would loop forever, so it's skipped and finished in Post.
     if (pThis->m_CBodyComponent()->m_pSceneNode()->m_pParent())
-        return { KHook::Action::Ignore };
+        RETURN_SH(MRES_IGNORED);
 
-    return { KHook::Action::Supersede };
+    RETURN_SH(MRES_SUPERCEDE);
 }
 
-KHook::Return<void> CBeamCrashFix::CBeam_SetBeamOriginPost(CBeam* pThis, const Vector* pVecPosition)
+void CBeamCrashFix::CBeam_SetBeamOriginPost(const Vector* pVecPosition)
 {
     GF_VPROF("GameFixes::beam_crash::SetBeamOriginPost");
 
+    CBeam* pThis = SH_IFACEPTR(CBeam);
+
     pThis->m_CBodyComponent()->m_pSceneNode()->m_vecAbsOrigin() = *pVecPosition;
 
-    return { KHook::Action::Ignore };
+    RETURN_SH(MRES_IGNORED);
 }
 
-KHook::Return<void> CBeamCrashFix::CBeam_SetBeamEndPos(CBeam* pThis, const Vector* pVecPosition)
+void CBeamCrashFix::CBeam_SetBeamEndPos(const Vector* pVecPosition)
 {
     GF_VPROF("GameFixes::beam_crash::SetBeamEndPos");
 
+    CBeam* pThis = SH_IFACEPTR(CBeam);
+
     // Same as CBeam_SetBeamOrigin.
     if (pThis->m_CBodyComponent()->m_pSceneNode()->m_pParent())
-        return { KHook::Action::Ignore };
+        RETURN_SH(MRES_IGNORED);
 
-    return { KHook::Action::Supersede };
+    RETURN_SH(MRES_SUPERCEDE);
 }
 
-KHook::Return<void> CBeamCrashFix::CBeam_SetBeamEndPosPost(CBeam* pThis, const Vector* pVecPosition)
+void CBeamCrashFix::CBeam_SetBeamEndPosPost(const Vector* pVecPosition)
 {
     GF_VPROF("GameFixes::beam_crash::SetBeamEndPosPost");
 
+    CBeam* pThis = SH_IFACEPTR(CBeam);
+
     pThis->m_vecEndPos() = *reinterpret_cast<const VectorWS*>(pVecPosition);
 
-    return { KHook::Action::Ignore };
+    RETURN_SH(MRES_IGNORED);
 }

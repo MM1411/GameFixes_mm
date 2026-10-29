@@ -35,7 +35,7 @@
 
 #include <const.h>
 #include <entityhandle.h>
-#include <entityinstance.h>
+#include <entity2/entityinstance.h>
 #include <mathlib/vector.h>
 
 class CBaseEntity : public CEntityInstance

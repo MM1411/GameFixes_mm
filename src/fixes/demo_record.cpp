@@ -25,7 +25,7 @@
 
 #include "demo_record.h"
 
-#include <engine2/gamesessionconfiguration.h>
+#include <iloopmode.h>
 #include "utils.hpp"
 #include "vprof.hpp"
 
@@ -35,10 +35,7 @@
 
 using namespace DynLibUtils;
 
-CDemoRecordFix::CDemoRecordFix() :
-    KHOOK_NEW(m_hDisconnect, &CServerSideClientBase::Disconnect, this, &CDemoRecordFix::CServerSideClient_Disconnect, nullptr)
-{
-}
+SH_DECL_HOOK2_void(CServerSideClientBase, Disconnect, SH_NOATTRIB, 0, ENetworkDisconnectionReason, const char*);
 
 bool CDemoRecordFix::Load(const FixModules& modules, char* error, size_t maxlen)
 {
@@ -52,7 +49,11 @@ bool CDemoRecordFix::Load(const FixModules& modules, char* error, size_t maxlen)
     }
 
     m_VTable.m_pVTFs = pVTable.RCast<void**>();
-    m_hDisconnect->AddGlobal(AsHookTarget<CServerSideClientBase>(m_VTable));
+    if (!KeepHook(SH_ADD_DVPHOOK(CServerSideClientBase, Disconnect, AsHookTarget<CServerSideClientBase>(m_VTable), SH_MEMBER(this, &CDemoRecordFix::CServerSideClient_Disconnect), false)))
+    {
+        std::snprintf(error, maxlen, "failed to hook CServerSideClient::Disconnect");
+        return false;
+    }
 
     Log("hooked CServerSideClient::Disconnect on vtable %p, tv_enable is %s", pVTable.GetPtr(), IsTvEnabled() ? "on" : "off");
     return true;
@@ -60,11 +61,7 @@ bool CDemoRecordFix::Load(const FixModules& modules, char* error, size_t maxlen)
 
 void CDemoRecordFix::Unload()
 {
-    if (m_VTable.m_pVTFs && m_hDisconnect)
-        m_hDisconnect->RemoveGlobal(AsHookTarget<CServerSideClientBase>(m_VTable));
-
-    delete m_hDisconnect;
-    m_hDisconnect = nullptr;
+    RemoveHooks();
     m_VTable.m_pVTFs = nullptr;
     m_tvEnable.reset();
 }
@@ -84,15 +81,17 @@ void CDemoRecordFix::OnStartupServer(const GameSessionConfiguration_t& config, c
     const_cast<GameSessionConfiguration_t&>(config).set_max_clients(config.max_clients() + 1);
 }
 
-KHook::Return<void> CDemoRecordFix::CServerSideClient_Disconnect(CServerSideClientBase* pThis, ENetworkDisconnectionReason reason, const char* pszInternalReason)
+void CDemoRecordFix::CServerSideClient_Disconnect(ENetworkDisconnectionReason reason, const char* pszInternalReason)
 {
     GF_VPROF("GameFixes::demo_record::Disconnect");
+
+    CServerSideClientBase* pThis = VHOOK_IFACEPTR(CServerSideClientBase);
 
     if (pThis->m_bIsHLTV && IsTvEnabled())
     {
         Log("GOTV is enabled, blocking the GOTV client's disconnect");
-        return { KHook::Action::Supersede };
+        VHOOK_RETURN(MRES_SUPERCEDE);
     }
 
-    return { KHook::Action::Ignore };
+    VHOOK_RETURN(MRES_IGNORED);
 }

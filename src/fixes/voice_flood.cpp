@@ -35,6 +35,8 @@
 
 using namespace DynLibUtils;
 
+SH_DECL_HOOK1(CServerSideClientBase, ProcessVoiceData, SH_NOATTRIB, 0, bool, const CCLCMsg_VoiceData_t&);
+
 // One message: voice_data, the serialized message, and its cost (the
 // serialized size plus 4 bytes per packet) are each held to 16 KiB, and it
 // may carry at most 64 packets.
@@ -49,11 +51,6 @@ static constexpr size_t kMaxMessagesPerWindow = 192;
 static constexpr size_t kMaxCostPerWindow = 256 * 1024;
 static constexpr uint32_t kMaxPacketsPerWindow = 1024;
 
-CVoiceFloodFix::CVoiceFloodFix() :
-    KHOOK_NEW(m_hProcessVoiceData, &CServerSideClientBase::ProcessVoiceData, this, &CVoiceFloodFix::CServerSideClient_ProcessVoiceData, nullptr)
-{
-}
-
 bool CVoiceFloodFix::Load(const FixModules& modules, char* error, size_t maxlen)
 {
     // An engine class with no interface to fetch and no instance at load time; the vtable is resolved by name and the hook covers every client sharing it.
@@ -65,7 +62,11 @@ bool CVoiceFloodFix::Load(const FixModules& modules, char* error, size_t maxlen)
     }
 
     m_VTable.m_pVTFs = pVTable.RCast<void**>();
-    m_hProcessVoiceData->AddGlobal(AsHookTarget<CServerSideClientBase>(m_VTable));
+    if (!KeepHook(SH_ADD_DVPHOOK(CServerSideClientBase, ProcessVoiceData, AsHookTarget<CServerSideClientBase>(m_VTable), SH_MEMBER(this, &CVoiceFloodFix::CServerSideClient_ProcessVoiceData), false)))
+    {
+        std::snprintf(error, maxlen, "failed to hook CServerSideClient::ProcessVoiceData");
+        return false;
+    }
 
     Log("hooked CServerSideClient::ProcessVoiceData on vtable %p", pVTable.GetPtr());
     return true;
@@ -73,11 +74,7 @@ bool CVoiceFloodFix::Load(const FixModules& modules, char* error, size_t maxlen)
 
 void CVoiceFloodFix::Unload()
 {
-    if (m_VTable.m_pVTFs && m_hProcessVoiceData)
-        m_hProcessVoiceData->RemoveGlobal(AsHookTarget<CServerSideClientBase>(m_VTable));
-
-    delete m_hProcessVoiceData;
-    m_hProcessVoiceData = nullptr;
+    RemoveHooks();
     m_VTable.m_pVTFs = nullptr;
 }
 
@@ -93,12 +90,14 @@ void CVoiceFloodFix::OnStartupServer(const GameSessionConfiguration_t& config, c
     m_bLoggedFirstDrop = false;
 }
 
-KHook::Return<bool> CVoiceFloodFix::CServerSideClient_ProcessVoiceData(CServerSideClientBase* pThis, const CNetMessagePB<CCLCMsg_VoiceData>& msg)
+bool CVoiceFloodFix::CServerSideClient_ProcessVoiceData(const CCLCMsg_VoiceData_t& msg)
 {
     GF_VPROF("GameFixes::voice_flood::ProcessVoiceData");
 
+    CServerSideClientBase* pThis = VHOOK_IFACEPTR(CServerSideClientBase);
+
     if (!ShouldDrop(pThis, msg))
-        return { KHook::Action::Ignore, true };
+        VHOOK_RETURN_VALUE(MRES_IGNORED, true);
 
     m_nDropped++;
     if (!m_bLoggedFirstDrop)
@@ -109,7 +108,7 @@ KHook::Return<bool> CVoiceFloodFix::CServerSideClient_ProcessVoiceData(CServerSi
 
     // Answered true, so the engine doesn't count the client as broken; the
     // message just never reaches the voice system.
-    return { KHook::Action::Supersede, true };
+    VHOOK_RETURN_VALUE(MRES_SUPERCEDE, true);
 }
 
 bool CVoiceFloodFix::ShouldDrop(CServerSideClientBase* pClient, const CCLCMsg_VoiceData& msg)

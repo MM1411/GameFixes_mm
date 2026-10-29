@@ -28,12 +28,24 @@
 #include "utils.hpp"
 
 #include <dynlibutils/virtual.hpp>
-#include <engine2/inetworkserverservice.h>
-#include <engine2/isource2server.h>
-#include <engine2/ivengineserver2.h>
-#include <engine2/networkgameserverbase.h>
+#include <eiface.h>
 #include <igameevents.h>
+#include <iserver.h>
 #include <ISmmPlugin.h>
+
+// After ISmmPlugin.h: the SH_* hook macros go through this plugin's own
+// SourceHook (vendor/sourcehook, with inline hooks), not metamod's shared one.
+#include <sourcehook/sourcehook_metamod_override.h>
+
+// Handlers of vtable hooks (SH_ADD_HOOK / SH_ADD_DVPHOOK) answer through these,
+// never through RETURN_META / SH_IFACEPTR. Those pick the inline-hook frame
+// whenever SourceHook's inline frame stack is not empty, and it stays set while
+// an inline-hooked function's original runs: a hooked virtual called from in
+// there (CheckSteamBan kicking a client into Disconnect, AcceptInput running a
+// server command) would read that frame's this and result instead of its own.
+#define VHOOK_IFACEPTR(type) reinterpret_cast<type*>(SH_GLOB_SHPTR->GetIfacePtr())
+#define VHOOK_RETURN(result) do { SH_GLOB_SHPTR->SetRes(result); return; } while (0)
+#define VHOOK_RETURN_VALUE(result, value) do { SH_GLOB_SHPTR->SetRes(result); return (value); } while (0)
 
 #include "IGameFixes.h"
 
@@ -46,8 +58,6 @@ struct FixModules;
 class Plugin final : public ISmmPlugin, public IMetamodListener, public IGameFixes
 {
 public:
-    Plugin();
-
     void* OnMetamodQuery(const char* iface, int* ret) override;
 
 public: // IGameFixes
@@ -67,14 +77,14 @@ public: // IGameFixes
     const char* GetLogTag() override;
 
 public: // Hooks
-    KHook::Return<void> CSource2Server_GameFrame(ISource2Server* pThis, bool simulating, bool bFirstTick, bool bLastTick);
-    KHook::Return<void> INetworkServerService_StartupServer(INetworkServerService* pThis, const GameSessionConfiguration_t& config, ISource2WorldSession* pSession, const char* pszMapName);
-    KHook::Return<int> CGameEventManager_LoadEventsFromFile(IGameEventManager2* pThis, const char* pszFilename, bool bSearchAll);
+    void CSource2Server_GameFrame(bool simulating, bool bFirstTick, bool bLastTick);
+    void INetworkServerService_StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession* pSession, const char* pszMapName);
+    int CGameEventManager_LoadEventsFromFile(const char* pszFilename, bool bSearchAll);
 
-    // KHook hooks only come down in their destructor, so they're owned through plain pointers: new in the constructor, delete in Unload().
-    KHook::Virtual<ISource2Server, void, bool, bool, bool>* m_hGameFrame = nullptr;
-    KHook::Virtual<INetworkServerService, void, const GameSessionConfiguration_t&, ISource2WorldSession*, const char*>* m_hStartupServer = nullptr;
-    KHook::Virtual<IGameEventManager2, int, const char*, bool>* m_hLoadEventsFromFile = nullptr;
+    // SourceHook ids, 0 while not hooked.
+    int m_iGameFrameHookID = 0;
+    int m_iStartupServerHookID = 0;
+    int m_iLoadEventsFromFileHookID = 0;
 
 private:
     std::vector<std::unique_ptr<CFix>> CreateFixes();

@@ -33,12 +33,12 @@
 
 #include "fix.h"
 #include "plugin.h"
-#include "sdk/game/shared/netmessages.h"
+#include <netmessages.h>
 #include "utils.hpp"
 
 #include <const.h>
 #include <dynlibutils/virtual.hpp>
-#include <engine2/serversideclientbase.h>
+#include <serversideclientbase.h>
 
 #include <chrono>
 #include <cstddef>
@@ -48,8 +48,6 @@
 class CVoiceFloodFix final : public CFix
 {
 public:
-    CVoiceFloodFix();
-
     const char* GetName() const override { return "voice_flood"; }
 
     bool Load(const FixModules& modules, char* error, size_t maxlen) override;
@@ -58,9 +56,7 @@ public:
     void OnStartupServer(const GameSessionConfiguration_t& config, const char* pszMapName) override;
 
 public: // Hooks
-    KHook::Return<bool> CServerSideClient_ProcessVoiceData(CServerSideClientBase* pThis, const CNetMessagePB<CCLCMsg_VoiceData>& msg);
-
-    KHook::Virtual<CServerSideClientBase, bool, const CNetMessagePB<CCLCMsg_VoiceData>&>* m_hProcessVoiceData = nullptr;
+    bool CServerSideClient_ProcessVoiceData(const CCLCMsg_VoiceData_t& msg);
 
 private:
     using Clock = std::chrono::steady_clock;
@@ -84,8 +80,8 @@ private:
 
     bool ShouldDrop(CServerSideClientBase* pClient, const CCLCMsg_VoiceData& msg);
 
-    // CServerSideClient's vtable (from libengine2); doubles as the hook's
-    // stand-in object, see AsHookTarget().
+    // CServerSideClient's vtable (from libengine2), what the hook is added on,
+    // see AsHookTarget().
     DynLibUtils::VirtualTable m_VTable;
 
     Budget m_Budgets[ABSOLUTE_PLAYER_LIMIT];

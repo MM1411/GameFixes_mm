@@ -30,18 +30,13 @@
 #include "utils.hpp"
 #include "vprof.hpp"
 
-#include <engine2/isource2server.h>
-#include <engine2/ivengineserver2.h>
-#include <entitysystem.h>
-#include <gameentitysystem.h>
+#include <eiface.h>
+#include <entity2/entitysystem.h>
 #include <interfaces/interfaces.h>
 #include <tier0/keyvalues.h>
 
-CServerListPlayersFix::CServerListPlayersFix() :
-    KHOOK_NEW(m_hSteamAPIActivated, &ISource2Server::GameServerSteamAPIActivated, this, nullptr, &CServerListPlayersFix::CSource2Server_GameServerSteamAPIActivated),
-    KHOOK_NEW(m_hSteamAPIDeactivated, &ISource2Server::GameServerSteamAPIDeactivated, this, nullptr, &CServerListPlayersFix::CSource2Server_GameServerSteamAPIDeactivated)
-{
-}
+SH_DECL_HOOK0_void(ISource2Server, GameServerSteamAPIActivated, SH_NOATTRIB, 0);
+SH_DECL_HOOK0_void(ISource2Server, GameServerSteamAPIDeactivated, SH_NOATTRIB, 0);
 
 void CServerListPlayersFix::ReadConfig(KeyValues* pConfig)
 {
@@ -53,8 +48,12 @@ void CServerListPlayersFix::ReadConfig(KeyValues* pConfig)
 
 bool CServerListPlayersFix::Load(const FixModules& modules, char* error, size_t maxlen)
 {
-    m_hSteamAPIActivated->Add(g_pSource2Server);
-    m_hSteamAPIDeactivated->Add(g_pSource2Server);
+    if (!KeepHook(SH_ADD_HOOK(ISource2Server, GameServerSteamAPIActivated, g_pSource2Server, SH_MEMBER(this, &CServerListPlayersFix::CSource2Server_GameServerSteamAPIActivated), true)) ||
+        !KeepHook(SH_ADD_HOOK(ISource2Server, GameServerSteamAPIDeactivated, g_pSource2Server, SH_MEMBER(this, &CServerListPlayersFix::CSource2Server_GameServerSteamAPIDeactivated), true)))
+    {
+        std::snprintf(error, maxlen, "failed to hook ISource2Server::GameServerSteamAPIActivated / Deactivated");
+        return false;
+    }
 
     // Loaded after the API already came up (late load): there won't be another activation, so try it right away.
     m_bSteamAPIReady = SteamGameServer() != nullptr;
@@ -67,15 +66,7 @@ bool CServerListPlayersFix::Load(const FixModules& modules, char* error, size_t 
 
 void CServerListPlayersFix::Unload()
 {
-    if (m_hSteamAPIActivated)
-        m_hSteamAPIActivated->Remove(g_pSource2Server);
-    if (m_hSteamAPIDeactivated)
-        m_hSteamAPIDeactivated->Remove(g_pSource2Server);
-
-    delete m_hSteamAPIActivated;
-    delete m_hSteamAPIDeactivated;
-    m_hSteamAPIActivated = nullptr;
-    m_hSteamAPIDeactivated = nullptr;
+    RemoveHooks();
 
     scheduler::KillTimer(m_pUpdateTimer);
     m_pUpdateTimer = nullptr;
@@ -83,22 +74,26 @@ void CServerListPlayersFix::Unload()
     m_bSteamAPIReady = false;
 }
 
-KHook::Return<void> CServerListPlayersFix::CSource2Server_GameServerSteamAPIActivated(ISource2Server* pThis)
+void CServerListPlayersFix::CSource2Server_GameServerSteamAPIActivated()
 {
     GF_VPROF("GameFixes::server_list_players::SteamAPIActivated");
 
+    ISource2Server* pThis = VHOOK_IFACEPTR(ISource2Server);
+
     m_bSteamAPIReady = SteamGameServer() != nullptr;
 
-    return { KHook::Action::Ignore };
+    VHOOK_RETURN(MRES_IGNORED);
 }
 
-KHook::Return<void> CServerListPlayersFix::CSource2Server_GameServerSteamAPIDeactivated(ISource2Server* pThis)
+void CServerListPlayersFix::CSource2Server_GameServerSteamAPIDeactivated()
 {
     GF_VPROF("GameFixes::server_list_players::SteamAPIDeactivated");
 
+    ISource2Server* pThis = VHOOK_IFACEPTR(ISource2Server);
+
     m_bSteamAPIReady = false;
 
-    return { KHook::Action::Ignore };
+    VHOOK_RETURN(MRES_IGNORED);
 }
 
 void CServerListPlayersFix::UpdatePlayers()

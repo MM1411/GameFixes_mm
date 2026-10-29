@@ -44,20 +44,17 @@ namespace
     bool IsConstructible(const CSchemaClassInfo* pInfo)
     {
         // The binding the game reads the flags from is the primary one.
-        if (pInfo && pInfo->m_pPrimaryBinding)
-            pInfo = pInfo->m_pPrimaryBinding;
+        if (pInfo && pInfo->m_pSchemaBinding)
+            pInfo = pInfo->m_pSchemaBinding;
         if (!pInfo)
             return true; // nothing to go by: leave it to the game
 
         constexpr uint32 kMask = SCHEMA_CF1_IS_ABSTRACT | SCHEMA_CF1_CONSTRUCT_ALLOWED | SCHEMA_CF1_CONSTRUCT_DISALLOWED;
-        return (pInfo->m_nClassFlags1 & kMask) == SCHEMA_CF1_CONSTRUCT_ALLOWED;
+        return (pInfo->m_nFlags1 & kMask) == SCHEMA_CF1_CONSTRUCT_ALLOWED;
     }
 }
 
-CAbstractEntityFix::CAbstractEntityFix() :
-    KHOOK_NEW(m_hCreateEntityFromKeyValues, this, &CAbstractEntityFix::CEntitySystem_CreateEntityFromKeyValues, nullptr)
-{
-}
+SH_DECL_INLINEHOOK2(CEntitySystem_CreateEntityFromKeyValues, CEntitySystem, CEntityInstance*, CEntityKeyValues*, uint32);
 
 bool CAbstractEntityFix::Load(const FixModules& modules, char* error, size_t maxlen)
 {
@@ -70,7 +67,11 @@ bool CAbstractEntityFix::Load(const FixModules& modules, char* error, size_t max
         return false;
     }
 
-    m_hCreateEntityFromKeyValues->Configure(pCreate.GetPtr());
+    if (!KeepHook(SH_ADD_INLINEHOOK(CEntitySystem_CreateEntityFromKeyValues, pCreate.GetPtr(), SH_MEMBER(this, &CAbstractEntityFix::CEntitySystem_CreateEntityFromKeyValues), false)))
+    {
+        std::snprintf(error, maxlen, "failed to hook CEntitySystem::CreateEntityFromKeyValues");
+        return false;
+    }
 
     Log("hooked CEntitySystem::CreateEntityFromKeyValues (%p)", pCreate.GetPtr());
     return true;
@@ -78,25 +79,26 @@ bool CAbstractEntityFix::Load(const FixModules& modules, char* error, size_t max
 
 void CAbstractEntityFix::Unload()
 {
-    delete m_hCreateEntityFromKeyValues;
-    m_hCreateEntityFromKeyValues = nullptr;
+    RemoveHooks();
     m_Logged.clear();
 }
 
-KHook::Return<CEntityInstance*> CAbstractEntityFix::CEntitySystem_CreateEntityFromKeyValues(CEntitySystem* pThis, CEntityKeyValues* pKeyValues, uint32 nSpawnGroup)
+CEntityInstance* CAbstractEntityFix::CEntitySystem_CreateEntityFromKeyValues(CEntityKeyValues* pKeyValues, uint32 nSpawnGroup)
 {
     GF_VPROF("GameFixes::abstract_entity::CreateEntityFromKeyValues");
 
+    CEntitySystem* pThis = SH_IFACEPTR(CEntitySystem);
+
     if (!pThis || !pKeyValues)
-        return { KHook::Action::Ignore, nullptr };
+        RETURN_SH_VALUE(MRES_IGNORED, nullptr);
 
     const char* pszClassname = pKeyValues->GetString("classname", nullptr);
     if (!pszClassname || !*pszClassname)
-        return { KHook::Action::Ignore, nullptr };
+        RETURN_SH_VALUE(MRES_IGNORED, nullptr);
 
     CEntityClass* pClass = pThis->FindClassByDesignName(pszClassname);
     if (!pClass || !pClass->m_pClassInfo || IsConstructible(pClass->m_pClassInfo->m_pSchemaBinding))
-        return { KHook::Action::Ignore, nullptr };
+        RETURN_SH_VALUE(MRES_IGNORED, nullptr);
 
     if (m_Logged.insert(pszClassname).second)
     {
@@ -104,5 +106,5 @@ KHook::Return<CEntityInstance*> CAbstractEntityFix::CEntitySystem_CreateEntityFr
         Log("refused to create '%s' (%s cannot be constructed; the game would crash on it)", pszClassname, pszCPPName ? pszCPPName : "?");
     }
 
-    return { KHook::Action::Supersede, nullptr };
+    RETURN_SH_VALUE(MRES_SUPERCEDE, nullptr);
 }

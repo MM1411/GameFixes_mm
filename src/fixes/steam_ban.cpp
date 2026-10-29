@@ -40,10 +40,8 @@
 
 using namespace DynLibUtils;
 
-CSteamBanFix::CSteamBanFix() :
-    KHOOK_NEW(m_hCheckSteamBan, this, &CSteamBanFix::GameSystem_Think_CheckSteamBan, &CSteamBanFix::GameSystem_Think_CheckSteamBanPost)
-{
-}
+// void GameSystem_Think_CheckSteamBan(), a free function.
+SH_DECL_INLINEHOOK0(GameSystem_Think_CheckSteamBan, void, void);
 
 void CSteamBanFix::ReadConfig(KeyValues* pConfig)
 {
@@ -95,7 +93,12 @@ bool CSteamBanFix::Load(const FixModules& modules, char* error, size_t maxlen)
         return false;
     }
 
-    m_hCheckSteamBan->Configure(pCheckSteamBan.GetPtr());
+    if (!KeepHook(SH_ADD_INLINEHOOK(GameSystem_Think_CheckSteamBan, pCheckSteamBan.GetPtr(), SH_MEMBER(this, &CSteamBanFix::GameSystem_Think_CheckSteamBan), false)) ||
+        !KeepHook(SH_ADD_INLINEHOOK(GameSystem_Think_CheckSteamBan, pCheckSteamBan.GetPtr(), SH_MEMBER(this, &CSteamBanFix::GameSystem_Think_CheckSteamBanPost), true)))
+    {
+        std::snprintf(error, maxlen, "failed to hook GameSystem_Think_CheckSteamBan");
+        return false;
+    }
 
     Log("hooked GameSystem_Think_CheckSteamBan (%p), ban map at %p, %zu whitelisted account(s), clear after pass %s, hold %.0f s", pCheckSteamBan.GetPtr(), m_pBanMap, m_whitelist.size(), m_bClearAfterPass ? "on" : "off", m_holdTime.count());
     return true;
@@ -103,8 +106,7 @@ bool CSteamBanFix::Load(const FixModules& modules, char* error, size_t maxlen)
 
 void CSteamBanFix::Unload()
 {
-    delete m_hCheckSteamBan;
-    m_hCheckSteamBan = nullptr;
+    RemoveHooks();
     m_pBanMap = nullptr;
     m_firstSeen.clear();
 }
@@ -125,7 +127,7 @@ bool CSteamBanFix::DisallowAccount(uint64_t steamId64)
     return steamId.IsValid() && m_allowed.erase(steamId.GetAccountID()) > 0;
 }
 
-KHook::Return<void> CSteamBanFix::GameSystem_Think_CheckSteamBan()
+void CSteamBanFix::GameSystem_Think_CheckSteamBan()
 {
     GF_VPROF("GameFixes::steam_ban::CheckSteamBan");
 
@@ -134,7 +136,7 @@ KHook::Return<void> CSteamBanFix::GameSystem_Think_CheckSteamBan()
     if (!m_pBanMap || m_pBanMap->Count() <= 0)
     {
         m_firstSeen.clear();
-        return { KHook::Action::Ignore };
+        RETURN_SH(MRES_IGNORED);
     }
 
     // Below sv_kick_players_with_cooldown 2 the pass still acts on competitive
@@ -159,7 +161,7 @@ KHook::Return<void> CSteamBanFix::GameSystem_Think_CheckSteamBan()
         m_pBanMap->RemoveAt(i);
 
     if (m_holdTime.count() <= 0.0f)
-        return { KHook::Action::Ignore };
+        RETURN_SH(MRES_IGNORED);
 
     // What is left would be kicked: hold it while it's new, in case a plugin allows it in time
     const auto now = std::chrono::steady_clock::now();
@@ -176,13 +178,13 @@ KHook::Return<void> CSteamBanFix::GameSystem_Think_CheckSteamBan()
     std::erase_if(m_firstSeen, [&inMap](const auto& entry) { return !inMap.contains(entry.first); });
 
     if (!bHold)
-        return { KHook::Action::Ignore };
+        RETURN_SH(MRES_IGNORED);
 
     m_bPassSkipped = true;
-    return { KHook::Action::Supersede };
+    RETURN_SH(MRES_SUPERCEDE);
 }
 
-KHook::Return<void> CSteamBanFix::GameSystem_Think_CheckSteamBanPost()
+void CSteamBanFix::GameSystem_Think_CheckSteamBanPost()
 {
     GF_VPROF("GameFixes::steam_ban::CheckSteamBanPost");
 
@@ -190,7 +192,7 @@ KHook::Return<void> CSteamBanFix::GameSystem_Think_CheckSteamBanPost()
     if (m_bPassSkipped)
     {
         m_bPassSkipped = false;
-        return { KHook::Action::Ignore };
+        RETURN_SH(MRES_IGNORED);
     }
 
     // Whoever the pass wanted kicked has been kicked by now; the rest of the map
@@ -198,5 +200,5 @@ KHook::Return<void> CSteamBanFix::GameSystem_Think_CheckSteamBanPost()
     if (m_bClearAfterPass && m_pBanMap && m_pBanMap->Count() > 0)
         m_pBanMap->RemoveAll();
 
-    return { KHook::Action::Ignore };
+    RETURN_SH(MRES_IGNORED);
 }

@@ -121,7 +121,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: GameFixes_mm_linux
-          path: build/package/cs2
+          path: build/package
 
 
   build-windows:
@@ -136,65 +136,26 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Prepare SDK directory
-        shell: powershell
-        run: |
-
-          $SDK = "C:\sdk"
-          $S2SDK = "$SDK\s2sdk"
-          $S2SDK_MANIFESTS = "$SDK\s2sdk-manifests"
-          $MMS = "$SDK\metamod-source"
-
-          if (Test-Path $SDK) { Remove-Item $SDK -Recurse -Force }
-          New-Item -ItemType Directory -Path $SDK | Out-Null
-
-          git clone --recursive --branch cs2 --single-branch https://github.com/Source2Mod/s2sdk $S2SDK
-          git clone --branch master --single-branch https://github.com/Source2Mod/s2sdk-manifests $S2SDK_MANIFESTS
-          git clone --recursive --branch master --single-branch https://github.com/Source2Mod/metamod-source $MMS
-
-          $S2SDK_UNIX = $S2SDK.Replace("\", "/")
-          $S2SDK_MANIFESTS_UNIX = $S2SDK_MANIFESTS.Replace("\", "/")
-          $MMS_UNIX    = $MMS.Replace("\", "/")
-
-          echo "S2SDK=$S2SDK_UNIX"      >> $env:GITHUB_ENV
-          echo "S2SDK_MANIFESTS_DIR=$S2SDK_MANIFESTS_UNIX" >> $env:GITHUB_ENV
-          echo "MMSOURCE_DEV=$MMS_UNIX"  >> $env:GITHUB_ENV
-
-      - name: Checkout AMBuild
-        uses: actions/checkout@v4
-        with:
-          repository: SlynxCZ/ambuild
-          path: ambuild
-
-      - name: Install AMBuild
-        shell: powershell
-        run: |
-          pip install setuptools wheel
-          cd ambuild
-          python setup.py install
-
-      - name: Configure + Build (AMBuild)
+      # external/sourcesdk (Wend4r/sourcesdk) and external/metamod-source
+      # (build 1411) are submodules, checked out above.
+      - name: Configure + Build (CMake)
         shell: cmd
         run: |
 
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          rem The runner image's Visual Studio moves between editions and
+          rem versions; vswhere finds whichever one has the x64 toolset.
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VS_PATH=%%i"
+          call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat" || exit /b 1
 
-          mkdir build
-          cd build
-
-          python ../configure.py ^
-            --enable-optimize ^
-            --sdks cs2 ^
-            --mms_path=%MMSOURCE_DEV% ^
-            --s2sdk-manifests=%S2SDK_MANIFESTS_DIR%
-
-          ambuild
+          rem cl explicitly: the image's MinGW is on PATH too.
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl || exit /b 1
+          cmake --build build || exit /b 1
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: GameFixes_mm_windows
-          path: build/package/cs2
+          path: build/package
 
 
   release:

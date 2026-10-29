@@ -36,19 +36,14 @@
 class CBeamCrashFix final : public CFix
 {
 public:
-    CBeamCrashFix();
-
     const char* GetName() const override { return "beam_crash"; }
 
     bool Load(const FixModules& modules, char* error, size_t maxlen) override;
     void Unload() override;
 
 public: // Hooks
-    KHook::Return<void> CBeam_SetBeamOrigin(CBeam* pThis, const Vector* pVecPosition);
-    KHook::Return<void> CBeam_SetBeamOriginPost(CBeam* pThis, const Vector* pVecPosition);
-    KHook::Return<void> CBeam_SetBeamEndPos(CBeam* pThis, const Vector* pVecPosition);
-    KHook::Return<void> CBeam_SetBeamEndPosPost(CBeam* pThis, const Vector* pVecPosition);
-
-    KHook::Member<CBeam, void, const Vector*>* m_hSetBeamOrigin = nullptr;
-    KHook::Member<CBeam, void, const Vector*>* m_hSetBeamEndPos = nullptr;
+    void CBeam_SetBeamOrigin(const Vector* pVecPosition);
+    void CBeam_SetBeamOriginPost(const Vector* pVecPosition);
+    void CBeam_SetBeamEndPos(const Vector* pVecPosition);
+    void CBeam_SetBeamEndPosPost(const Vector* pVecPosition);
 };

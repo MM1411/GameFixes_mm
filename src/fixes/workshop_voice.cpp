@@ -29,6 +29,7 @@
 #include "vprof.hpp"
 
 #include <dynlibutils/module.hpp>
+#include <netmessages.h>
 #include <networksystem/inetworkserializer.h>
 
 #include <cstdio>
@@ -37,10 +38,7 @@
 
 using namespace DynLibUtils;
 
-CWorkshopVoiceFix::CWorkshopVoiceFix() :
-    KHOOK_NEW(m_hSendNetMessage, &CServerSideClientBase::SendNetMessage, this, &CWorkshopVoiceFix::CServerSideClient_SendNetMessage, nullptr)
-{
-}
+SH_DECL_HOOK2(CServerSideClientBase, SendNetMessage, SH_NOATTRIB, 0, bool, const CNetMessage*, NetChannelBufType_t);
 
 bool CWorkshopVoiceFix::Load(const FixModules& modules, char* error, size_t maxlen)
 {
@@ -53,7 +51,11 @@ bool CWorkshopVoiceFix::Load(const FixModules& modules, char* error, size_t maxl
     }
 
     m_VTable.m_pVTFs = pVTable.RCast<void**>();
-    m_hSendNetMessage->AddGlobal(AsHookTarget<CServerSideClientBase>(m_VTable));
+    if (!KeepHook(SH_ADD_DVPHOOK(CServerSideClientBase, SendNetMessage, AsHookTarget<CServerSideClientBase>(m_VTable), SH_MEMBER(this, &CWorkshopVoiceFix::CServerSideClient_SendNetMessage), false)))
+    {
+        std::snprintf(error, maxlen, "failed to hook CServerSideClient::SendNetMessage");
+        return false;
+    }
 
     Log("hooked CServerSideClient::SendNetMessage on vtable %p", pVTable.GetPtr());
     return true;
@@ -61,11 +63,7 @@ bool CWorkshopVoiceFix::Load(const FixModules& modules, char* error, size_t maxl
 
 void CWorkshopVoiceFix::Unload()
 {
-    if (m_VTable.m_pVTFs && m_hSendNetMessage)
-        m_hSendNetMessage->RemoveGlobal(AsHookTarget<CServerSideClientBase>(m_VTable));
-
-    delete m_hSendNetMessage;
-    m_hSendNetMessage = nullptr;
+    RemoveHooks();
     m_VTable.m_pVTFs = nullptr;
 }
 
@@ -75,26 +73,23 @@ void CWorkshopVoiceFix::OnStartupServer(const GameSessionConfiguration_t& config
     m_bLoggedFirstRewrite = false;
 }
 
-KHook::Return<bool> CWorkshopVoiceFix::CServerSideClient_SendNetMessage(CServerSideClientBase* pThis, const CNetMessage* pData, NetChannelBufType_t bufType)
+bool CWorkshopVoiceFix::CServerSideClient_SendNetMessage(const CNetMessage* pData, NetChannelBufType_t bufType)
 {
     GF_VPROF("GameFixes::workshop_voice::SendNetMessage");
 
+    CServerSideClientBase* pThis = VHOOK_IFACEPTR(CServerSideClientBase);
+
     if (!pData)
-        return { KHook::Action::Ignore, true };
+        VHOOK_RETURN_VALUE(MRES_IGNORED, true);
 
-    INetworkMessageInternal* pNetMsg = pData->GetNetMessage();
-    if (!pNetMsg)
-        return { KHook::Action::Ignore, true };
-
-    NetMessageInfo_t* pInfo = pNetMsg->GetNetMessageInfo();
-    if (!pInfo || pInfo->m_MessageId != SVC_Messages::svc_VoiceData)
-        return { KHook::Action::Ignore, true };
+    if (pData->GetMessageId() != SVC_Messages::svc_VoiceData)
+        VHOOK_RETURN_VALUE(MRES_IGNORED, true);
 
     // The reference implementation's "playerid": the client being sent to, not the one talking.
     const int nRecipient = pThis->m_nClientSlot.Get();
 
     // Rewritten in place in Pre, so the engine serializes the modified message into this client's channel.
-    CSVCMsg_VoiceData* pMsg = const_cast<CSVCMsg_VoiceData*>(static_cast<const CSVCMsg_VoiceData*>(pData->ToPB<CSVCMsg_VoiceData>()));
+    CSVCMsg_VoiceData* pMsg = const_cast<CSVCMsg_VoiceData_t*>(pData->As<CSVCMsg_VoiceData_t>());
 
     // And its "msg.Entity": the speaker.
     const int nSpeaker = pMsg->entity();
@@ -107,7 +102,7 @@ KHook::Return<bool> CWorkshopVoiceFix::CServerSideClient_SendNetMessage(CServerS
         Log("rewriting svc_VoiceData xuid, first packet was entity %d -> slot %d", nSpeaker, nRecipient);
     }
 
-    return { KHook::Action::Ignore, true };
+    VHOOK_RETURN_VALUE(MRES_IGNORED, true);
 }
 
 uint64 CWorkshopVoiceFix::SeedForRecipient(int nSlot)

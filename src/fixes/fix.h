@@ -27,6 +27,7 @@
 #pragma once
 
 #include <cstddef>
+#include <vector>
 
 class KeyValues;
 class GameSessionConfiguration_t;
@@ -55,10 +56,10 @@ public:
 
     // Installs the fix. On failure, writes why into error and returns false;
     // the plugin logs it, calls Unload() and leaves just this fix off, the
-    // others still load. KHook hooks only come down in their destructor, so
-    // a fix owns them through plain pointers and deletes them in Unload().
-    // Unload() also runs, without Load(), for a fix disabled in the ini, so it
-    // must cope with whatever Load() left unset.
+    // others still load. Unload() takes down whatever hooks Load() got in
+    // (RemoveHooks()), also after a Load() that failed half way, and it also
+    // runs, without Load(), for a fix disabled in the ini, so it must cope
+    // with whatever Load() left unset.
     virtual bool Load(const FixModules& modules, char* error, size_t maxlen) = 0;
     virtual void Unload() {}
 
@@ -75,4 +76,13 @@ public:
 protected:
     // "<name>: <message>" through metamod's logger.
     void Log(const char* pszFormat, ...) const;
+
+    // Keeps the id an SH_ADD_*HOOK returned, for RemoveHooks(); false for a
+    // failed add (0), which is not kept.
+    bool KeepHook(int iHookID);
+    // Removes every hook KeepHook() kept.
+    void RemoveHooks();
+
+private:
+    std::vector<int> m_hookIDs;
 };

@@ -1,31 +1,31 @@
-# Linux settings -- CMake twin of makefiles/ambuild/linux.ambuild.
+# Linux settings. The SDK's own (_LINUX, POSIX, _GLIBCXX_USE_CXX11_ABI=0, -fPIC,
+# the export map, tier0 / steam_api) come through sourcesdk::sourcesdk.
 
-# The SDK's Linux defines (_LINUX, POSIX, stricmp=strcasecmp, ...) and libraries
-# come from s2sdk-manifests' linux.cmake, through s2sdk::s2sdk.
-add_definitions(
-    -D_FILE_OFFSET_BITS=64
+set(PLUGIN_COMPILE_DEFINITIONS
+    ${PLUGIN_COMPILE_DEFINITIONS}
+    _FILE_OFFSET_BITS=64
+    _snprintf=snprintf
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_snprintf=snprintf")
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-uninitialized -Wno-switch -Wno-unused")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-non-virtual-dtor -Wno-overloaded-virtual")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-conversion-null -Wno-write-strings")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-offsetof -Wno-reorder")
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -msse -fno-strict-aliasing")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-threadsafe-statics -fvisibility=hidden")
-
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lgcc_eh -static-libstdc++")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--exclude-libs=libprotobuf.a")
-
-set(LINK_LIBRARIES
-    s2sdk::s2sdk
-    dynlibutils
+set(PLUGIN_COMPILE_OPTIONS
+    -Wall -Wno-uninitialized -Wno-switch -Wno-unused
+    -Wno-non-virtual-dtor -Wno-overloaded-virtual
+    -Wno-invalid-offsetof -Wno-reorder
+    -mfpmath=sse -msse -fno-strict-aliasing
+    -fno-threadsafe-statics
+    # The SDK builds with -fvisibility=default; only the export map decides
+    # what leaves the .so, but nothing of ours needs to be in its symbol table.
+    -fvisibility=hidden -fvisibility-inlines-hidden
 )
 
-# Export only CreateInterface -- the same version script AMBuild links with
-# (makefiles/ambuild/linux.ambuild).
-set(PLUGIN_EXPORT_MAP ${CMAKE_CURRENT_LIST_DIR}/../ExportMap)
-list(APPEND PLUGIN_LINK_OPTIONS "-Wl,--version-script=${PLUGIN_EXPORT_MAP}")
-list(APPEND PLUGIN_LINK_DEPENDS ${PLUGIN_EXPORT_MAP})
+# No --exclude-libs: CreateInterface itself comes from the SDK's static
+# tier0_perproject; the SDK's version script already keeps everything else in.
+set(PLUGIN_LINK_OPTIONS
+    -static-libstdc++
+)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    list(APPEND PLUGIN_LINK_OPTIONS -static-libgcc)
+else ()
+    list(APPEND PLUGIN_LINK_OPTIONS -lgcc_eh)
+endif ()

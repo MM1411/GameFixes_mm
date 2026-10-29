@@ -49,7 +49,7 @@
 
 class CBasePlayerPawn;
 class CCSPlayer_MovementServices;
-// The player's bounds; s2sdk dropped the bbox_t eiface.h used to have.
+// The player's bounds; the SDK has no bbox_t any more.
 struct PlayerBounds_t
 {
     Vector mins;
@@ -70,15 +70,11 @@ public:
     void OnStartupServer(const GameSessionConfiguration_t& config, const char* pszMapName) override;
 
 public: // Hooks
-    KHook::Return<void> CCSPlayer_MovementServices_ProcessMovement(CCSPlayer_MovementServices* pThis, void* pMove);
-    KHook::Return<void> CCSPlayer_MovementServices_ProcessMovementPost(CCSPlayer_MovementServices* pThis, void* pMove);
-    KHook::Return<void> CCSPlayer_MovementServices_TryPlayerMove(CCSPlayer_MovementServices* pThis, CMoveData* pMove, Vector* pFirstDest, trace_t* pFirstTrace, bool* pIsSurfing);
-    KHook::Return<void> CCSPlayer_MovementServices_TryPlayerMovePost(CCSPlayer_MovementServices* pThis, CMoveData* pMove, Vector* pFirstDest, trace_t* pFirstTrace, bool* pIsSurfing);
-    KHook::Return<void> CCSPlayer_MovementServices_CategorizePosition(CCSPlayer_MovementServices* pThis, CMoveData* pMove, bool bStayOnGround);
-
-    KHook::Member<CCSPlayer_MovementServices, void, void*>* m_hProcessMovement = nullptr;
-    KHook::Member<CCSPlayer_MovementServices, void, CMoveData*, Vector*, trace_t*, bool*>* m_hTryPlayerMove = nullptr;
-    KHook::Member<CCSPlayer_MovementServices, void, CMoveData*, bool>* m_hCategorizePosition = nullptr;
+    void CCSPlayer_MovementServices_ProcessMovement(void* pMove);
+    void CCSPlayer_MovementServices_ProcessMovementPost(void* pMove);
+    void CCSPlayer_MovementServices_TryPlayerMove(CMoveData* pMove, Vector* pFirstDest, trace_t* pFirstTrace, bool* pIsSurfing);
+    void CCSPlayer_MovementServices_TryPlayerMovePost(CMoveData* pMove, Vector* pFirstDest, trace_t* pFirstTrace, bool* pIsSurfing);
+    void CCSPlayer_MovementServices_CategorizePosition(CMoveData* pMove, bool bStayOnGround);
 
 private:
     // What one player's movement pass left behind, from one call to the next.

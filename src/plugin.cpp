@@ -27,6 +27,7 @@
 
 #include "fixes/abstract_entity.h"
 #include "fixes/beam_crash.h"
+#include "fixes/console_spam.h"
 #include "fixes/demo_record.h"
 #include "fixes/fix.h"
 #include "fixes/hammer_id.h"
@@ -41,14 +42,14 @@
 #include "fixes/water_jump.h"
 #include "fixes/workshop_voice.h"
 #include "scheduler.h"
-#include <engine2/gamesessionconfiguration.h>
 #include "utils.hpp"
 #include "vprof.hpp"
 
 #include <dynlibutils/module.hpp>
-#include <entitysystem.h>
+#include <entity2/entitysystem.h>
+#include <iloopmode.h>
 #include <interfaces/interfaces.h>
-#include <tier0/buffer_string.h>
+#include <tier0/bufferstring.h>
 #include <tier0/keyvalues.h>
 #include <tier0/tier0_strtools.h>
 
@@ -62,17 +63,14 @@ using namespace DynLibUtils;
 Plugin g_Plugin;
 PLUGIN_EXPOSE(Plugin, g_Plugin);
 
-Plugin::Plugin() :
-    // GameFrame Post: the fixes only read the frame. StartupServer Pre: demo_record edits the session's maxplayers before the engine reads it.
-    KHOOK_NEW(m_hGameFrame, &ISource2Server::GameFrame, this, nullptr, &Plugin::CSource2Server_GameFrame),
-    KHOOK_NEW(m_hStartupServer, &INetworkServerService::StartupServer, this, &Plugin::INetworkServerService_StartupServer, nullptr),
-    KHOOK_NEW(m_hLoadEventsFromFile, &IGameEventManager2::LoadEventsFromFile, this, nullptr, &Plugin::CGameEventManager_LoadEventsFromFile)
-{
-}
+SH_DECL_HOOK3_void(ISource2Server, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
+SH_DECL_HOOK3_void(INetworkServerService, StartupServer, SH_NOATTRIB, 0, const GameSessionConfiguration_t&, ISource2WorldSession*, const char*);
+SH_DECL_HOOK2(IGameEventManager2, LoadEventsFromFile, SH_NOATTRIB, 0, int, const char*, bool);
 
 bool Plugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool late)
 {
     PLUGIN_SAVEVARS();
+    SH_METAMOD_OVERRIDE_SAVEVARS(id);
 
     GET_V_IFACE_CURRENT(GetServerFactory, g_pSource2Server, ISource2Server, SOURCE2SERVER_INTERFACE_VERSION);
     GET_V_IFACE_CURRENT(GetServerFactory, g_pSource2GameClients, ISource2GameClients, SOURCE2GAMECLIENTS_INTERFACE_VERSION);
@@ -100,10 +98,11 @@ bool Plugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool l
 
     scheduler::Init();
 
-    m_hGameFrame->Add(g_pSource2Server);
-    m_hStartupServer->Add(g_pNetworkServerService);
+    // GameFrame Post: the fixes only read the frame. StartupServer Pre: demo_record edits the session's maxplayers before the engine reads it.
+    m_iGameFrameHookID = SH_ADD_HOOK(ISource2Server, GameFrame, g_pSource2Server, SH_MEMBER(this, &Plugin::CSource2Server_GameFrame), true);
+    m_iStartupServerHookID = SH_ADD_HOOK(INetworkServerService, StartupServer, g_pNetworkServerService, SH_MEMBER(this, &Plugin::INetworkServerService_StartupServer), false);
 
-    m_hLoadEventsFromFile->AddGlobal(AsHookTarget<IGameEventManager2>(m_GameEventManagerVTable));
+    m_iLoadEventsFromFileHookID = SH_ADD_DVPHOOK(IGameEventManager2, LoadEventsFromFile, AsHookTarget<IGameEventManager2>(m_GameEventManagerVTable), SH_MEMBER(this, &Plugin::CGameEventManager_LoadEventsFromFile), true);
 
     g_SMAPI->AddListener(this, this);
 
@@ -112,20 +111,14 @@ bool Plugin::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool l
 
 bool Plugin::Unload(char* error, size_t maxlen)
 {
-    // Metamod unloads a plugin whose Load failed too, and a second Unload finds the hooks already deleted.
-    if (m_hGameFrame)
-        m_hGameFrame->Remove(g_pSource2Server);
-    if (m_hStartupServer)
-        m_hStartupServer->Remove(g_pNetworkServerService);
-    if (m_GameEventManagerVTable.m_pVTFs && m_hLoadEventsFromFile)
-        m_hLoadEventsFromFile->RemoveGlobal(AsHookTarget<IGameEventManager2>(m_GameEventManagerVTable));
+    // Metamod unloads a plugin whose Load failed too; ids of hooks that never went in are 0.
+    for (int* pHookID : { &m_iGameFrameHookID, &m_iStartupServerHookID, &m_iLoadEventsFromFileHookID })
+    {
+        if (*pHookID)
+            SH_REMOVE_HOOK_ID(*pHookID);
+        *pHookID = 0;
+    }
 
-    delete m_hGameFrame;
-    delete m_hStartupServer;
-    delete m_hLoadEventsFromFile;
-    m_hGameFrame = nullptr;
-    m_hStartupServer = nullptr;
-    m_hLoadEventsFromFile = nullptr;
     m_GameEventManagerVTable.m_pVTFs = nullptr;
     m_pGameEventManager = nullptr;
 
@@ -138,7 +131,7 @@ bool Plugin::Unload(char* error, size_t maxlen)
     return true;
 }
 
-KHook::Return<void> Plugin::CSource2Server_GameFrame(ISource2Server* pThis, bool simulating, bool bFirstTick, bool bLastTick)
+void Plugin::CSource2Server_GameFrame(bool simulating, bool bFirstTick, bool bLastTick)
 {
     GF_VPROF("GameFixes::GameFrame");
 
@@ -147,10 +140,10 @@ KHook::Return<void> Plugin::CSource2Server_GameFrame(ISource2Server* pThis, bool
     for (auto& fix : m_fixes)
         fix->OnGameFrame(simulating);
 
-    return { KHook::Action::Ignore };
+    VHOOK_RETURN(MRES_IGNORED);
 }
 
-KHook::Return<void> Plugin::INetworkServerService_StartupServer(INetworkServerService* pThis, const GameSessionConfiguration_t& config, ISource2WorldSession* pSession, const char* pszMapName)
+void Plugin::INetworkServerService_StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession* pSession, const char* pszMapName)
 {
     GF_VPROF("GameFixes::StartupServer");
 
@@ -159,12 +152,14 @@ KHook::Return<void> Plugin::INetworkServerService_StartupServer(INetworkServerSe
     for (auto& fix : m_fixes)
         fix->OnStartupServer(config, pszMapName);
 
-    return { KHook::Action::Ignore };
+    VHOOK_RETURN(MRES_IGNORED);
 }
 
-KHook::Return<int> Plugin::CGameEventManager_LoadEventsFromFile(IGameEventManager2* pThis, const char* pszFilename, bool bSearchAll)
+int Plugin::CGameEventManager_LoadEventsFromFile(const char* pszFilename, bool bSearchAll)
 {
     GF_VPROF("GameFixes::LoadEventsFromFile");
+
+    IGameEventManager2* pThis = VHOOK_IFACEPTR(IGameEventManager2);
 
     if (!m_pGameEventManager)
     {
@@ -174,7 +169,7 @@ KHook::Return<int> Plugin::CGameEventManager_LoadEventsFromFile(IGameEventManage
             fix->OnGameEventManagerReady(pThis);
     }
 
-    return { KHook::Action::Ignore, 0 };
+    VHOOK_RETURN_VALUE(MRES_IGNORED, 0);
 }
 
 std::vector<std::unique_ptr<CFix>> Plugin::CreateFixes()
@@ -194,16 +189,17 @@ std::vector<std::unique_ptr<CFix>> Plugin::CreateFixes()
     fixes.push_back(std::make_unique<CRampbugFix>());
     fixes.push_back(std::make_unique<CWaterJumpFix>());
     fixes.push_back(std::make_unique<CVoiceFloodFix>());
+    fixes.push_back(std::make_unique<CConsoleSpamFix>());
     return fixes;
 }
 
 bool Plugin::LoadFixes(const FixModules& modules, char* error, size_t maxlen)
 {
-    CBufferStringGrowable<255> gameDir;
+    CBufferStringN<256> gameDir;
     g_pEngineServer->GetGameDir(gameDir);
 
     char szConfigPath[512];
-    V_snprintf(szConfigPath, sizeof(szConfigPath), "%s/addons/game_fixes/game_fixes.ini", gameDir.Get());
+    V_snprintf(szConfigPath, sizeof(szConfigPath), "%s/addons/configs/game_fixes/game_fixes.ini", gameDir.Get());
 
     KeyValues::AutoDelete config("game_fixes");
     if (!config->LoadFromFile(g_pFullFileSystem, szConfigPath))
@@ -218,7 +214,7 @@ bool Plugin::LoadFixes(const FixModules& modules, char* error, size_t maxlen)
         if (!pBlock || !pBlock->GetBool("enable"))
         {
             META_LOG(this, "%s: disabled\n", fix->GetName());
-            // Its KHook objects were made in the constructor and only Unload deletes them.
+            // Unload() copes with a fix that never loaded; nothing of it is hooked.
             fix->Unload();
             continue;
         }

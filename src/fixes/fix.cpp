@@ -42,3 +42,20 @@ void CFix::Log(const char* pszFormat, ...) const
 
     META_LOG(&g_Plugin, "%s: %s\n", GetName(), szMessage);
 }
+
+bool CFix::KeepHook(int iHookID)
+{
+    if (!iHookID)
+        return false;
+
+    m_hookIDs.push_back(iHookID);
+    return true;
+}
+
+void CFix::RemoveHooks()
+{
+    for (int iHookID : m_hookIDs)
+        SH_REMOVE_HOOK_ID(iHookID);
+
+    m_hookIDs.clear();
+}

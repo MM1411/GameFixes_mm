@@ -37,15 +37,12 @@ class CBaseFilter;
 class CInputActivatorCrashFix final : public CFix
 {
 public:
-    CInputActivatorCrashFix();
-
     const char* GetName() const override { return "input_activator_crash"; }
 
     bool Load(const FixModules& modules, char* error, size_t maxlen) override;
     void Unload() override;
 
 public: // Hooks
-    KHook::Return<bool> CEntityIdentity_AcceptInput(CEntityIdentity* pThis, CUtlSymbolLarge* pInputName, CEntityInstance* pActivator, CEntityInstance* pCaller, variant_t* pValue, void* a6, void* a7);
+    bool CEntityIdentity_AcceptInput(CUtlSymbolLarge* pInputName, CEntityInstance* pActivator, CEntityInstance* pCaller, variant_t* pValue, void* a6, void* a7);
 
-    KHook::Member<CEntityIdentity, bool, CUtlSymbolLarge*, CEntityInstance*, CEntityInstance*, variant_t*, void*, void*>* m_hAcceptInput = nullptr;
 };

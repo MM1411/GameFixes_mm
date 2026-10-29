@@ -2,3 +2,13 @@
 	path = vendor/dynlibutils
 	url = https://github.com/SlynxCZ/DynLibUtils.git
 	branch = main
+[submodule "vendor/sourcehook"]
+	path = vendor/sourcehook
+	url = https://github.com/SlynxCZ/SourceHook.git
+[submodule "external/sourcesdk"]
+	path = external/sourcesdk
+	url = https://github.com/Wend4r/sourcesdk.git
+	branch = main
+[submodule "external/metamod-source"]
+	path = external/metamod-source
+	url = https://github.com/alliedmodders/metamod-source.git

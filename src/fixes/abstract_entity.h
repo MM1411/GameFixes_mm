@@ -45,17 +45,13 @@ class CEntityInstance;
 class CAbstractEntityFix final : public CFix
 {
 public:
-    CAbstractEntityFix();
-
     const char* GetName() const override { return "abstract_entity"; }
 
     bool Load(const FixModules& modules, char* error, size_t maxlen) override;
     void Unload() override;
 
 public: // Hooks
-    KHook::Return<CEntityInstance*> CEntitySystem_CreateEntityFromKeyValues(CEntitySystem* pThis, CEntityKeyValues* pKeyValues, uint32 nSpawnGroup);
-
-    KHook::Member<CEntitySystem, CEntityInstance*, CEntityKeyValues*, uint32>* m_hCreateEntityFromKeyValues = nullptr;
+    CEntityInstance* CEntitySystem_CreateEntityFromKeyValues(CEntityKeyValues* pKeyValues, uint32 nSpawnGroup);
 
 private:
     // Each refused classname is logged once.

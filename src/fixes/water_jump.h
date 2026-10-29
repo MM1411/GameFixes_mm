@@ -40,8 +40,6 @@ class CMoveData;
 class CWaterJumpFix final : public CFix
 {
 public:
-    CWaterJumpFix();
-
     const char* GetName() const override { return "water_jump"; }
 
     bool Load(const FixModules& modules, char* error, size_t maxlen) override;
@@ -50,11 +48,8 @@ public:
     void OnStartupServer(const GameSessionConfiguration_t& config, const char* pszMapName) override;
 
 public: // Hooks
-    KHook::Return<void> CCSPlayer_MovementServices_WaterMove(CCSPlayer_MovementServices* pThis, CMoveData* pMove);
-    KHook::Return<void> CCSPlayer_MovementServices_CategorizePosition(CCSPlayer_MovementServices* pThis, CMoveData* pMove, bool bStayOnGround);
-
-    KHook::Member<CCSPlayer_MovementServices, void, CMoveData*>* m_hWaterMove = nullptr;
-    KHook::Member<CCSPlayer_MovementServices, void, CMoveData*, bool>* m_hCategorizePosition = nullptr;
+    void CCSPlayer_MovementServices_WaterMove(CMoveData* pMove);
+    void CCSPlayer_MovementServices_CategorizePosition(CMoveData* pMove, bool bStayOnGround);
 
 private:
     // Which slot a movement service belongs to; -1 for anything that is not a player.

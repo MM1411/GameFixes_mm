@@ -35,10 +35,7 @@
 
 using namespace DynLibUtils;
 
-CInputActivatorCrashFix::CInputActivatorCrashFix() :
-    KHOOK_NEW(m_hAcceptInput, this, &CInputActivatorCrashFix::CEntityIdentity_AcceptInput, nullptr)
-{
-}
+SH_DECL_INLINEHOOK6(CEntityIdentity_AcceptInput, CEntityIdentity, bool, CUtlSymbolLarge*, CEntityInstance*, CEntityInstance*, variant_t*, void*, void*);
 
 bool CInputActivatorCrashFix::Load(const FixModules& modules, char* error, size_t maxlen)
 {
@@ -50,7 +47,11 @@ bool CInputActivatorCrashFix::Load(const FixModules& modules, char* error, size_
         return false;
     }
 
-    m_hAcceptInput->Configure(pAcceptInput.GetPtr());
+    if (!KeepHook(SH_ADD_INLINEHOOK(CEntityIdentity_AcceptInput, pAcceptInput.GetPtr(), SH_MEMBER(this, &CInputActivatorCrashFix::CEntityIdentity_AcceptInput), false)))
+    {
+        std::snprintf(error, maxlen, "failed to hook CEntityIdentity::AcceptInput");
+        return false;
+    }
 
     Log("hooked CEntityIdentity::AcceptInput (%p)", pAcceptInput.GetPtr());
     return true;
@@ -58,17 +59,18 @@ bool CInputActivatorCrashFix::Load(const FixModules& modules, char* error, size_
 
 void CInputActivatorCrashFix::Unload()
 {
-    delete m_hAcceptInput;
-    m_hAcceptInput = nullptr;
+    RemoveHooks();
 }
 
-KHook::Return<bool> CInputActivatorCrashFix::CEntityIdentity_AcceptInput(CEntityIdentity* pThis, CUtlSymbolLarge* pInputName, CEntityInstance* pActivator, CEntityInstance* pCaller, variant_t* pValue, void* a6, void* a7)
+bool CInputActivatorCrashFix::CEntityIdentity_AcceptInput(CUtlSymbolLarge* pInputName, CEntityInstance* pActivator, CEntityInstance* pCaller, variant_t* pValue, void* a6, void* a7)
 {
     GF_VPROF("GameFixes::input_activator_crash::AcceptInput");
 
+    CEntityIdentity* pThis = SH_IFACEPTR(CEntityIdentity);
+
     // If null activator (player disconnected & pawn removed), block the real TestActivator function from executing and crashing the server
     if (!V_strnicmp(pThis->GetClassname(), "filter_", 7) && !V_strcasecmp(pInputName->String(), "TestActivator") && !pActivator)
-        return { KHook::Action::Supersede, true };
+        RETURN_SH_VALUE(MRES_SUPERCEDE, true);
 
-    return { KHook::Action::Ignore };
+    RETURN_SH_VALUE(MRES_IGNORED, true);
 }
