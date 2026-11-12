@@ -40,7 +40,6 @@
 #include "fixes/team_limit.h"
 #include "fixes/voice_flood.h"
 #include "fixes/water_jump.h"
-#include "fixes/workshop_voice.h"
 #include "scheduler.h"
 #include "utils.hpp"
 #include "vprof.hpp"
@@ -180,7 +179,6 @@ std::vector<std::unique_ptr<CFix>> Plugin::CreateFixes()
     fixes.push_back(std::make_unique<CDemoRecordFix>());
     fixes.push_back(std::make_unique<CHammerIdFix>());
     fixes.push_back(std::make_unique<CSlowAnimationFix>());
-    fixes.push_back(std::make_unique<CWorkshopVoiceFix>());
     fixes.push_back(std::make_unique<CSteamBanFix>());
     fixes.push_back(std::make_unique<CTeamLimitFix>());
     fixes.push_back(std::make_unique<CInputActivatorCrashFix>());
